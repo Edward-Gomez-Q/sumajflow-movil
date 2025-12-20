@@ -1,6 +1,8 @@
+// lib/presentation/pages/splash/splash.dart
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sumajflow_movil/config/routes/route_names.dart';
+import 'package:sumajflow_movil/core/services/auth_service.dart';
 import 'package:sumajflow_movil/presentation/pages/splash/widgets/animated_logo.dart';
 
 /// Página de splash inicial
@@ -15,12 +17,21 @@ class _SplashState extends State<Splash> {
   @override
   void initState() {
     super.initState();
-    _navigateToHome();
+    _navigateToNextScreen();
   }
 
-  Future<void> _navigateToHome() async {
+  Future<void> _navigateToNextScreen() async {
     await Future.delayed(const Duration(seconds: 3));
-    if (mounted) {
+
+    if (!mounted) return;
+
+    final authService = AuthService.to;
+
+    if (authService.isAuthenticated) {
+      print('✅ Usuario autenticado, navegando a dashboard');
+      context.go(RouteNames.dashboard);
+    } else {
+      print('⚠️ Usuario no autenticado, navegando a home');
       context.go(RouteNames.home);
     }
   }
@@ -31,9 +42,7 @@ class _SplashState extends State<Splash> {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      body: Center(
-        child: AnimatedLogo(),
-      ),
+      body: Center(child: AnimatedLogo()),
     );
   }
 }
