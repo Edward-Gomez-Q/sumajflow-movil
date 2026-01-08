@@ -8,4 +8,8 @@ class RouteNames {
   static const String login = '/login';
   static const String success = '/success';
   static const String dashboard = '/dashboard';
+  static const String loteDetalle = '/lote';
+  static const String viaje = '/viaje';
+  static const String tracking = '/tracking';
+  static const String profile = '/profile';
 }

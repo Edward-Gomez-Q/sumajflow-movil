@@ -46,6 +46,46 @@ class AppTheme {
     ),
 
     cardColor: AppColors.lightCardBackground,
+
+    // Configuraciones adicionales para animaciones y transiciones
+    pageTransitionsTheme: const PageTransitionsTheme(
+      builders: {
+        TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+        TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+      },
+    ),
+
+    // AppBar theme mejorado
+    appBarTheme: const AppBarTheme(
+      elevation: 0,
+      centerTitle: false,
+      backgroundColor: AppColors.lightPrimary,
+      foregroundColor: Colors.white,
+      iconTheme: IconThemeData(color: Colors.white),
+    ),
+
+    // Card theme mejorado - CORRECCIÓN AQUÍ
+    cardTheme: CardThemeData(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      color: AppColors.lightCardBackground,
+    ),
+
+    // ElevatedButton theme
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        elevation: 2,
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    ),
+
+    // Divider theme
+    dividerTheme: const DividerThemeData(
+      color: AppColors.lightBorder,
+      thickness: 1,
+      space: 1,
+    ),
   );
 
   static ThemeData get dark => ThemeData(
@@ -89,5 +129,45 @@ class AppTheme {
     ),
 
     cardColor: AppColors.darkCardBackground,
+
+    // Configuraciones adicionales para animaciones y transiciones
+    pageTransitionsTheme: const PageTransitionsTheme(
+      builders: {
+        TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+        TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+      },
+    ),
+
+    // AppBar theme mejorado
+    appBarTheme: const AppBarTheme(
+      elevation: 0,
+      centerTitle: false,
+      backgroundColor: AppColors.darkSurface,
+      foregroundColor: AppColors.darkTextPrimary,
+      iconTheme: IconThemeData(color: AppColors.darkTextPrimary),
+    ),
+
+    // Card theme mejorado - CORRECCIÓN AQUÍ
+    cardTheme: CardThemeData(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      color: AppColors.darkCardBackground,
+    ),
+
+    // ElevatedButton theme
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        elevation: 2,
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    ),
+
+    // Divider theme
+    dividerTheme: const DividerThemeData(
+      color: AppColors.darkBorder,
+      thickness: 1,
+      space: 1,
+    ),
   );
 }

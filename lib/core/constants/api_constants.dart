@@ -1,7 +1,7 @@
 /// Constantes de la API
 class ApiConstants {
   // URL base del backend 192.168.0.14
-  static const String baseUrl = 'http://192.168.0.14:8080';
+  static const String baseUrl = 'http://192.168.0.7:8080';
 
   // Endpoints
   static const String onboardingEndpoint = '/public/transportista/onboarding';

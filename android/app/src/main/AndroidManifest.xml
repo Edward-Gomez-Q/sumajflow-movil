@@ -9,9 +9,18 @@
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO"/>
     
+    <!-- ========== PERMISOS PARA UBICACIÓN/GPS ========== -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <!-- Para tracking en segundo plano (opcional, solo si lo necesitas) -->
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"/>
+    
     <!-- Declarar que la app usa cámara (pero no es obligatoria) -->
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false"/>
+    
+    <!-- Declarar que la app usa ubicación (pero no es obligatoria) -->
+    <uses-feature android:name="android.hardware.location.gps" android:required="false"/>
     
     <!-- Permiso para Internet (si subes imágenes a un servidor) -->
     <uses-permission android:name="android.permission.INTERNET"/>
