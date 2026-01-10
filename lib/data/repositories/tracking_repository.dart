@@ -35,46 +35,6 @@ class TrackingRepository {
     );
   }
 
-  // ==================== LOTES ASIGNADOS ====================
-
-  /// Obtiene los lotes asignados al transportista
-  Future<List<LoteAsignadoModel>> getMisLotes({
-    String filtro = 'activos',
-  }) async {
-    try {
-      final response = await _dio.get(
-        '/movil/transportista/mis-lotes',
-        queryParameters: {'filtro': filtro},
-      );
-
-      if (response.statusCode == 200 && response.data['success'] == true) {
-        final List<dynamic> data = response.data['data'];
-        return data.map((e) => LoteAsignadoModel.fromJson(e)).toList();
-      }
-
-      throw Exception(response.data['message'] ?? 'Error al obtener lotes');
-    } on DioException catch (e) {
-      throw _handleDioError(e);
-    }
-  }
-
-  /// Obtiene el detalle de un lote para iniciar viaje
-  Future<LoteDetalleViajeModel> getDetalleLote(int asignacionId) async {
-    try {
-      final response = await _dio.get(
-        '/movil/transportista/lote/$asignacionId/detalle',
-      );
-
-      if (response.statusCode == 200 && response.data['success'] == true) {
-        return LoteDetalleViajeModel.fromJson(response.data['data']);
-      }
-
-      throw Exception(response.data['message'] ?? 'Error al obtener detalle');
-    } on DioException catch (e) {
-      throw _handleDioError(e);
-    }
-  }
-
   // ==================== TRACKING ====================
 
   /// Inicia el tracking de un viaje
@@ -242,38 +202,6 @@ class TrackingRepository {
       }
 
       throw Exception(response.data['message'] ?? 'Error al sincronizar');
-    } on DioException catch (e) {
-      throw _handleDioError(e);
-    }
-  }
-
-  // ==================== SIMULACIÓN (DESARROLLO) ====================
-
-  /// Simula una ubicación (solo para desarrollo/testing)
-  Future<ActualizacionUbicacionResponse> simularUbicacion({
-    required int asignacionCamionId,
-    required double lat,
-    required double lng,
-    double? velocidad,
-    double? rumbo,
-  }) async {
-    try {
-      final response = await _dio.post(
-        '/tracking/simular',
-        data: {
-          'asignacionCamionId': asignacionCamionId,
-          'lat': lat,
-          'lng': lng,
-          'velocidad': velocidad ?? 0,
-          'rumbo': rumbo,
-        },
-      );
-
-      if (response.statusCode == 200 && response.data['success'] == true) {
-        return ActualizacionUbicacionResponse.fromJson(response.data['data']);
-      }
-
-      throw Exception(response.data['message'] ?? 'Error al simular ubicación');
     } on DioException catch (e) {
       throw _handleDioError(e);
     }

@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 
 /// Controlador del tema de la aplicación
 class ThemeController extends GetxController {
+  static ThemeController get to => Get.find();
+
   Rx<ThemeMode> themeMode = ThemeMode.light.obs;
 
   void toggleTheme() {

@@ -1,16 +1,60 @@
-// lib/config/routes/app_router.dart
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sumajflow_movil/core/services/auth_service.dart';
-import 'package:sumajflow_movil/presentation/pages/dashboard/dashboard_transportista.dart';
+import 'package:sumajflow_movil/presentation/pages/dashboard/dashboard.dart';
 import 'package:sumajflow_movil/presentation/pages/login/login.dart';
+import 'package:sumajflow_movil/presentation/pages/lotes/lote_detalle_page.dart';
 import 'package:sumajflow_movil/presentation/pages/splash/splash.dart';
 import 'package:sumajflow_movil/presentation/pages/home/home.dart';
 import 'package:sumajflow_movil/presentation/pages/qr_scanner/qr_scanner.dart';
 import 'package:sumajflow_movil/presentation/pages/verificacion_codigo/verificacion_codigo.dart';
 import 'package:sumajflow_movil/presentation/pages/onboarding/onboarding.dart';
 import 'package:sumajflow_movil/presentation/pages/success/success.dart';
+import 'package:sumajflow_movil/presentation/pages/lotes/lotes_page.dart';
+import 'package:sumajflow_movil/presentation/pages/notificaciones/notificaciones_page.dart';
+import 'package:sumajflow_movil/presentation/pages/perfil/perfil_page.dart';
 import 'package:sumajflow_movil/config/routes/route_names.dart';
-import 'package:sumajflow_movil/presentation/pages/viaje/detalle_lote_page.dart';
+import 'package:sumajflow_movil/presentation/widgets/navigation/bottom_nav_bar.dart';
+
+// Navegación de shell para páginas con bottom nav
+class _ShellRouteNavigator extends StatelessWidget {
+  final Widget child;
+
+  const _ShellRouteNavigator({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaffoldWithBottomNav(
+      navItems: const [
+        BottomNavItem(
+          icon: Icons.home_outlined,
+          activeIcon: Icons.home,
+          label: 'Inicio',
+          route: RouteNames.dashboard,
+        ),
+        BottomNavItem(
+          icon: Icons.inventory_2_outlined,
+          activeIcon: Icons.inventory_2,
+          label: 'Lotes',
+          route: RouteNames.lotes,
+        ),
+        BottomNavItem(
+          icon: Icons.notifications_outlined,
+          activeIcon: Icons.notifications,
+          label: 'Alertas',
+          route: RouteNames.notificaciones,
+        ),
+        BottomNavItem(
+          icon: Icons.person_outline,
+          activeIcon: Icons.person,
+          label: 'Perfil',
+          route: RouteNames.profile,
+        ),
+      ],
+      child: child,
+    );
+  }
+}
 
 class AppRouter {
   static final GoRouter router = GoRouter(
@@ -19,10 +63,6 @@ class AppRouter {
       final authService = AuthService.to;
       final isAuthenticated = authService.isAuthenticated;
       final currentLocation = state.uri.path;
-
-      print('🔍 Redirect check:');
-      print('   - Current location: $currentLocation');
-      print('   - Is authenticated: $isAuthenticated');
 
       // Si está en splash, dejarlo pasar
       if (currentLocation == RouteNames.splash) {
@@ -48,20 +88,18 @@ class AppRouter {
 
       // Si está autenticado y trata de ir a una ruta pública, redirigir a dashboard
       if (isAuthenticated && (isPublicRoute || isOnboardingRoute)) {
-        print('✅ Usuario autenticado, redirigiendo a dashboard');
         return RouteNames.dashboard;
       }
 
       // Si no está autenticado y trata de ir a una ruta privada, redirigir a home
       if (!isAuthenticated && !isPublicRoute && !isOnboardingRoute) {
-        print('⚠️ Usuario no autenticado, redirigiendo a home');
         return RouteNames.home;
       }
 
-      // En cualquier otro caso, permitir la navegación
       return null;
     },
     routes: [
+      // Rutas sin bottom navigation
       GoRoute(
         path: RouteNames.splash,
         builder: (context, state) => const Splash(),
@@ -90,21 +128,65 @@ class AppRouter {
         builder: (context, state) => const Success(),
       ),
       GoRoute(
-        path: RouteNames.dashboard,
-        builder: (context, state) => const DashboardTransportista(),
-      ),
-      GoRoute(
         path: RouteNames.login,
         builder: (context, state) => const Login(),
+      ),
+
+      // Shell route con bottom navigation
+      ShellRoute(
+        builder: (context, state, child) => _ShellRouteNavigator(child: child),
+        routes: [
+          GoRoute(
+            path: RouteNames.dashboard,
+            pageBuilder: (context, state) => _buildPageWithTransition(
+              child: const Dashboard(),
+              state: state,
+            ),
+          ),
+          GoRoute(
+            path: RouteNames.lotes,
+            pageBuilder: (context, state) => _buildPageWithTransition(
+              child: const LotesPage(),
+              state: state,
+            ),
+          ),
+          GoRoute(
+            path: RouteNames.notificaciones,
+            pageBuilder: (context, state) => _buildPageWithTransition(
+              child: const NotificacionesPage(),
+              state: state,
+            ),
+          ),
+          GoRoute(
+            path: RouteNames.profile,
+            pageBuilder: (context, state) => _buildPageWithTransition(
+              child: const PerfilPage(),
+              state: state,
+            ),
+          ),
+        ],
       ),
       GoRoute(
         path: '${RouteNames.loteDetalle}/:asignacionId',
         builder: (context, state) {
           final asignacionIdStr = state.pathParameters['asignacionId'] ?? '0';
           final asignacionId = int.tryParse(asignacionIdStr) ?? 0;
-          return DetalleLotePage(asignacionId: asignacionId);
+          return LoteDetallePage(asignacionId: asignacionId);
         },
       ),
     ],
   );
+
+  static Page _buildPageWithTransition({
+    required Widget child,
+    required GoRouterState state,
+  }) {
+    return CustomTransitionPage(
+      key: state.pageKey,
+      child: child,
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        return FadeTransition(opacity: animation, child: child);
+      },
+    );
+  }
 }
