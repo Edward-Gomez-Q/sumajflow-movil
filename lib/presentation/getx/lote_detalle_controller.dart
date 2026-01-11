@@ -1,9 +1,11 @@
 // lib/presentation/getx/lote_detalle_controller.dart
 
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:sumajflow_movil/core/services/notification_service.dart';
 import 'package:sumajflow_movil/data/models/lote_models.dart';
 import 'package:sumajflow_movil/data/repositories/lotes_repository.dart';
+import 'package:sumajflow_movil/presentation/widgets/dialogs/confirmar_inicio_viaje_dialog.dart';
 
 class LoteDetalleController extends GetxController {
   final LotesRepository _lotesRepository = LotesRepository();
@@ -16,6 +18,9 @@ class LoteDetalleController extends GetxController {
   var isLoading = false.obs;
   var loteDetalle = Rxn<LoteDetalleViajeModel>();
 
+  // Callback para navegación (configurado desde el widget)
+  Function? _navegarATrazabilidad;
+
   // Constructor que recibe el asignacionId
   LoteDetalleController(this.asignacionId);
 
@@ -23,6 +28,11 @@ class LoteDetalleController extends GetxController {
   void onInit() {
     super.onInit();
     cargarDetalleLote();
+  }
+
+  /// Configura el callback de navegación desde el widget
+  void configurarNavegacion(Function callback) {
+    _navegarATrazabilidad = callback;
   }
 
   /// Carga el detalle del lote
@@ -35,7 +45,7 @@ class LoteDetalleController extends GetxController {
 
       loteDetalle.value = detalle;
 
-      print('✅ Detalle del lote cargado exitosamente');
+      print('  Detalle del lote cargado exitosamente');
       print('   Estado: ${detalle.estado}');
       print('   Código: ${detalle.codigoLote}');
       print('   Waypoints válidos: ${detalle.tieneRutaCompleta}');
@@ -67,7 +77,7 @@ class LoteDetalleController extends GetxController {
       case 'Esperando iniciar':
         return 'Empezar Viaje';
       case 'Completado':
-        return ''; // No mostrar botón
+        return '';
       default:
         return 'Reanudar Viaje';
     }
@@ -131,31 +141,45 @@ class LoteDetalleController extends GetxController {
     }
   }
 
-  /// Acción del botón principal (navegar a la vista de viaje activo)
-  void onPresionarBotonPrincipal() {
+  /// Acción del botón principal
+  void onPresionarBotonPrincipal(BuildContext context) {
     if (loteDetalle.value == null) return;
 
     final estado = loteDetalle.value!.estado;
 
     if (estado == 'Esperando iniciar') {
-      // Navegar a vista de inicio de viaje
-      Get.toNamed(
-        '/viaje/iniciar',
-        arguments: {
-          'asignacionId': asignacionId,
-          'loteDetalle': loteDetalle.value,
-        },
-      );
+      _mostrarModalConfirmacion(context);
     } else {
-      // Navegar a vista de viaje en curso
-      Get.toNamed(
-        '/viaje/activo',
-        arguments: {
-          'asignacionId': asignacionId,
-          'loteDetalle': loteDetalle.value,
-        },
-      );
+      _irATrazabilidad();
     }
+  }
+
+  /// Muestra el modal de confirmación para iniciar viaje
+  Future<void> _mostrarModalConfirmacion(BuildContext context) async {
+    final confirmado = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const ConfirmarInicioViajeDialog(),
+    );
+    print('📝 Confirmación de inicio de viaje: $confirmado');
+
+    if (confirmado == true) {
+      _irATrazabilidad();
+    }
+  }
+
+  /// Navega a la página de trazabilidad
+  void _irATrazabilidad() {
+    if (_navegarATrazabilidad == null) {
+      print('❌ Callback de navegación no configurado');
+      _notificationService.showError(
+        'Error',
+        'No se pudo navegar. Intenta nuevamente.',
+      );
+      return;
+    }
+
+    _navegarATrazabilidad!();
   }
 
   /// Obtiene el progreso del viaje (0.0 a 1.0)

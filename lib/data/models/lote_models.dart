@@ -13,7 +13,7 @@ class LoteAsignadoModel {
   final String tipoMineral;
   final String estado;
   final int numeroCamion;
-  final String? destinoNombre; // ✅ Agregado
+  final String? destinoNombre; //   Agregado
   final DateTime? fechaAsignacion;
   final List<String> mineralTags;
 
@@ -26,7 +26,7 @@ class LoteAsignadoModel {
     required this.tipoMineral,
     required this.estado,
     required this.numeroCamion,
-    this.destinoNombre, // ✅ Agregado
+    this.destinoNombre, //   Agregado
     this.fechaAsignacion,
     this.mineralTags = const [],
   });
@@ -41,7 +41,7 @@ class LoteAsignadoModel {
       tipoMineral: json['tipoMineral'],
       estado: json['estado'],
       numeroCamion: json['numeroCamion'],
-      destinoNombre: json['destinoNombre'], // ✅ Agregado
+      destinoNombre: json['destinoNombre'], //   Agregado
       fechaAsignacion: json['fechaAsignacion'] != null
           ? DateTime.parse(json['fechaAsignacion'])
           : null,

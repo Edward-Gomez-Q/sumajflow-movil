@@ -25,10 +25,12 @@ class _MapFourWaypointsState extends State<MapFourWaypoints> {
   List<LatLng> _routePoints = [];
   bool _isLoading = true;
   bool _routeError = false;
+  http.Client? _httpClient; //   Cliente HTTP para poder cancelar peticiones
 
   @override
   void initState() {
     super.initState();
+    _httpClient = http.Client(); //   Inicializar cliente
     _fetchRoute();
   }
 
@@ -40,7 +42,18 @@ class _MapFourWaypointsState extends State<MapFourWaypoints> {
     }
   }
 
+  @override
+  void dispose() {
+    //   Cancelar peticiones pendientes y cerrar cliente
+    _httpClient?.close();
+    _httpClient = null;
+    super.dispose();
+  }
+
   Future<void> _fetchRoute() async {
+    //   Verificar si el widget está montado antes de setState
+    if (!mounted) return;
+
     setState(() {
       _isLoading = true;
       _routeError = false;
@@ -52,6 +65,7 @@ class _MapFourWaypointsState extends State<MapFourWaypoints> {
           .toList();
 
       if (waypointsValidos.isEmpty) {
+        if (!mounted) return; //   Verificar antes de setState
         setState(() {
           _isLoading = false;
         });
@@ -59,6 +73,7 @@ class _MapFourWaypointsState extends State<MapFourWaypoints> {
       }
 
       if (waypointsValidos.length < 4) {
+        if (!mounted) return; //   Verificar antes de setState
         setState(() {
           _routePoints = waypointsValidos
               .map((w) => LatLng(w.latitud!, w.longitud!))
@@ -77,7 +92,13 @@ class _MapFourWaypointsState extends State<MapFourWaypoints> {
         'https://router.project-osrm.org/route/v1/driving/$coordinates?overview=full&geometries=polyline',
       );
 
-      final response = await http.get(url).timeout(const Duration(seconds: 10));
+      //   Usar el cliente HTTP que puede ser cancelado
+      final response = await _httpClient
+          ?.get(url)
+          .timeout(const Duration(seconds: 10));
+
+      //   Verificar si la respuesta es null (widget fue disposed)
+      if (response == null || !mounted) return;
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -90,6 +111,7 @@ class _MapFourWaypointsState extends State<MapFourWaypoints> {
 
           final decodedPoints = _decodePolyline(geometry);
 
+          if (!mounted) return; //   Verificar antes de setState
           setState(() {
             _routePoints = decodedPoints;
             _isLoading = false;
@@ -102,6 +124,9 @@ class _MapFourWaypointsState extends State<MapFourWaypoints> {
         _useFallbackRoute(waypointsValidos);
       }
     } catch (e) {
+      //   Si el widget fue disposed, no hacer nada
+      if (!mounted) return;
+
       final waypointsValidos = widget.waypoints
           .where((w) => w.tieneCoordenadas)
           .toList();
@@ -110,6 +135,8 @@ class _MapFourWaypointsState extends State<MapFourWaypoints> {
   }
 
   void _useFallbackRoute(List<WaypointModel> waypoints) {
+    if (!mounted) return; //   Verificar antes de setState
+
     setState(() {
       _routePoints = waypoints
           .map((w) => LatLng(w.latitud!, w.longitud!))

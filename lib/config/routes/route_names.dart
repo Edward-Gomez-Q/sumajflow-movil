@@ -18,4 +18,6 @@ class RouteNames {
   static const String loteDetalle = '/lote';
   static const String viaje = '/viaje';
   static const String tracking = '/tracking';
+
+  static const String trazabilidad = '/trazabilidad';
 }

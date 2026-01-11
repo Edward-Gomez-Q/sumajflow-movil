@@ -116,7 +116,7 @@ class OfflineStorageService extends GetxService {
       }
 
       await _updatePendingCount();
-      debugPrint('✅ $count ubicaciones marcadas como sincronizadas');
+      debugPrint('  $count ubicaciones marcadas como sincronizadas');
     } catch (e) {
       debugPrint('❌ Error al marcar ubicaciones sincronizadas: $e');
     }

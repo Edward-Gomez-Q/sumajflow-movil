@@ -41,9 +41,9 @@ class TransportistaRepository {
       print('📥 Response data: ${response.data}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        print('✅ Onboarding completado exitosamente');
+        print('  Onboarding completado exitosamente');
 
-        // ✅ Asegurarse de devolver la estructura correcta
+        //   Asegurarse de devolver la estructura correcta
         if (response.data is Map<String, dynamic>) {
           return response.data as Map<String, dynamic>;
         } else {
@@ -66,7 +66,7 @@ class TransportistaRepository {
     try {
       print('📤 Subiendo archivo a MinIO en carpeta: $folder');
       final objectName = await _apiProvider.uploadFile(file, folder: folder);
-      print('✅ Archivo subido exitosamente: $objectName');
+      print('  Archivo subido exitosamente: $objectName');
       return objectName;
     } catch (e) {
       print('❌ Error al subir archivo: $e');

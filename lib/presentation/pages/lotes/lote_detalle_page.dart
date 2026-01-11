@@ -2,19 +2,52 @@
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:go_router/go_router.dart';
+import 'package:sumajflow_movil/config/routes/route_names.dart';
 import 'package:sumajflow_movil/data/models/lote_models.dart';
 import 'package:sumajflow_movil/presentation/getx/lote_detalle_controller.dart';
 import 'package:sumajflow_movil/presentation/widgets/maps/map_four_waypoints.dart';
 
-class LoteDetallePage extends StatelessWidget {
+class LoteDetallePage extends StatefulWidget {
   final int asignacionId;
 
   const LoteDetallePage({super.key, required this.asignacionId});
 
   @override
+  State<LoteDetallePage> createState() => _LoteDetallePageState();
+}
+
+class _LoteDetallePageState extends State<LoteDetallePage> {
+  late final LoteDetalleController controller;
+  late final String controllerTag;
+
+  @override
+  void initState() {
+    super.initState();
+
+    controllerTag = 'lote_detalle_${widget.asignacionId}';
+
+    controller = Get.put(
+      LoteDetalleController(widget.asignacionId),
+      tag: controllerTag,
+    );
+  }
+
+  @override
+  void dispose() {
+    print('🗑️ Eliminando LoteDetalleController - Tag: $controllerTag');
+    Get.delete<LoteDetalleController>(tag: controllerTag);
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final controller = Get.put(LoteDetalleController(asignacionId));
     final theme = Theme.of(context);
+
+    //   Configurar navegación
+    controller.configurarNavegacion(() {
+      context.push('${RouteNames.trazabilidad}/${widget.asignacionId}');
+    });
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -67,7 +100,7 @@ class LoteDetallePage extends StatelessWidget {
           return const SizedBox.shrink();
         }
 
-        return _buildBottomButton(theme, controller);
+        return _buildBottomButton(theme, controller, context);
       }),
     );
   }
@@ -663,7 +696,11 @@ class LoteDetallePage extends StatelessWidget {
     );
   }
 
-  Widget _buildBottomButton(ThemeData theme, LoteDetalleController controller) {
+  Widget _buildBottomButton(
+    ThemeData theme,
+    LoteDetalleController controller,
+    BuildContext context,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -678,7 +715,8 @@ class LoteDetallePage extends StatelessWidget {
       ),
       child: SafeArea(
         child: FilledButton(
-          onPressed: controller.onPresionarBotonPrincipal,
+          onPressed: () =>
+              controller.onPresionarBotonPrincipal(Get.context ?? context),
           style: FilledButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 16),
             backgroundColor: theme.colorScheme.primary,

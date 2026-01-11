@@ -72,12 +72,12 @@ class WebSocketService extends GetxService {
             _scheduleReconnect();
           },
 
-          // ✅ Headers con token JWT
+          //   Headers con token JWT
           stompConnectHeaders: {'Authorization': 'Bearer $token'},
 
           webSocketConnectHeaders: {'Authorization': 'Bearer $token'},
 
-          // ✅ Heartbeat
+          //   Heartbeat
           heartbeatIncoming: const Duration(seconds: 10),
           heartbeatOutgoing: const Duration(seconds: 10),
         ),
@@ -94,10 +94,10 @@ class WebSocketService extends GetxService {
 
   void _onConnect(StompFrame frame, int userId) {
     _status.value = WebSocketStatus.connected;
-    debugPrint('✅ WebSocket STOMP conectado correctamente');
+    debugPrint('  WebSocket STOMP conectado correctamente');
     debugPrint('📡 Frame headers: ${frame.headers}');
 
-    // ✅ SUSCRIPCIÓN CORRECTA - Spring añade el userId automáticamente
+    //   SUSCRIPCIÓN CORRECTA - Spring añade el userId automáticamente
     final destination = '/user/queue/notificaciones';
 
     debugPrint('📬 Suscribiéndose a: $destination');
@@ -112,7 +112,7 @@ class WebSocketService extends GetxService {
       },
     );
 
-    debugPrint('✅ Suscripción completada exitosamente');
+    debugPrint('  Suscripción completada exitosamente');
   }
 
   void _handleNotification(String body) {

@@ -31,7 +31,7 @@ class AuthService extends GetxService {
       _correo.value = prefs.getString('correo');
 
       if (_authToken.value != null) {
-        print('✅ Sesión cargada: Usuario ID ${_usuarioId.value}');
+        print('  Sesión cargada: Usuario ID ${_usuarioId.value}');
       }
     } catch (e) {
       print('❌ Error al cargar datos de autenticación: $e');
@@ -58,7 +58,7 @@ class AuthService extends GetxService {
       _transportistaId.value = transportistaId;
       _correo.value = correo;
 
-      print('✅ Datos de autenticación guardados');
+      print('  Datos de autenticación guardados');
       print('   - Token: ${token.substring(0, 20)}...');
       print('   - Usuario ID: $usuarioId');
       print('   - Transportista ID: $transportistaId');
@@ -84,7 +84,7 @@ class AuthService extends GetxService {
       _transportistaId.value = null;
       _correo.value = null;
 
-      print('✅ Sesión cerrada correctamente');
+      print('  Sesión cerrada correctamente');
     } catch (e) {
       print('❌ Error al limpiar datos de autenticación: $e');
       rethrow;

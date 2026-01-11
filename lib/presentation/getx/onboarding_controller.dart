@@ -198,7 +198,7 @@ class OnboardingController extends GetxController {
       nombreInvitacion.value = nombre.trim();
       telefonoInvitacion.value = datos['numeroCelular'] ?? '';
 
-      print('✅ Datos cargados exitosamente');
+      print('  Datos cargados exitosamente');
     } catch (e) {
       print('❌ Error al cargar datos de invitación: $e');
       _showSnackbar(
@@ -248,7 +248,7 @@ class OnboardingController extends GetxController {
 
         fechaNacimientoController.text = formattedDate;
 
-        print('✅ Fecha seleccionada: $formattedDate');
+        print('  Fecha seleccionada: $formattedDate');
 
         validatePaso1();
       }
@@ -262,7 +262,7 @@ class OnboardingController extends GetxController {
     }
   }
 
-  /// ✅ Solicitar permisos antes de abrir el picker
+  ///   Solicitar permisos antes de abrir el picker
   Future<bool> _solicitarPermisos(
     ImageSource source,
     BuildContext context,
@@ -366,7 +366,7 @@ class OnboardingController extends GetxController {
     }
   }
 
-  /// ✅ Captura una foto y la sube a MinIO
+  ///   Captura una foto y la sube a MinIO
   Future<void> pickImage(String tipo, BuildContext context) async {
     try {
       final source = await showDialog<ImageSource>(
@@ -408,7 +408,7 @@ class OnboardingController extends GetxController {
         return;
       }
 
-      print('✅ Permisos concedidos, abriendo picker...');
+      print('  Permisos concedidos, abriendo picker...');
 
       final XFile? image = await _picker.pickImage(
         source: source,
@@ -441,7 +441,7 @@ class OnboardingController extends GetxController {
         return;
       }
 
-      print('✅ Archivo válido, tamaño: ${await imageFile.length()} bytes');
+      print('  Archivo válido, tamaño: ${await imageFile.length()} bytes');
 
       // Solo licencia
       if (tipo == 'licencia') {
@@ -478,7 +478,7 @@ class OnboardingController extends GetxController {
       const String folder = 'documentos-transportistas';
       final objectName = await _repository.uploadFile(file, folder);
 
-      print('✅ Imagen subida exitosamente: $objectName');
+      print('  Imagen subida exitosamente: $objectName');
 
       if (tipo == 'licencia') {
         licenciaObjectName.value = objectName;
@@ -600,13 +600,13 @@ class OnboardingController extends GetxController {
         transportista: transportistaData,
       );
 
-      print('✅ Onboarding completado, procesando respuesta...');
+      print('  Onboarding completado, procesando respuesta...');
       print('📥 Respuesta completa: $response');
 
       isLoading.value = false;
 
       if (response != null && response['success'] == true) {
-        // ✅ CORRECCIÓN: Acceder a los datos dentro de 'data'
+        //   CORRECCIÓN: Acceder a los datos dentro de 'data'
         final data = response['data'] as Map<String, dynamic>?;
 
         if (data != null) {
@@ -632,7 +632,7 @@ class OnboardingController extends GetxController {
               correo: correo,
             );
 
-            print('✅ Datos guardados en AuthService');
+            print('  Datos guardados en AuthService');
 
             _showSnackbar(
               'Éxito',

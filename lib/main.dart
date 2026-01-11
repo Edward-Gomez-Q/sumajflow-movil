@@ -28,24 +28,24 @@ void main() async {
 
     // Servicio de autenticación (debe ser el primero)
     await Get.putAsync(() => AuthService().init());
-    debugPrint('✅ AuthService inicializado');
+    debugPrint('  AuthService inicializado');
 
     // Servicios de almacenamiento y ubicación
     await Get.putAsync(() => OfflineStorageService().init());
-    debugPrint('✅ OfflineStorageService inicializado');
+    debugPrint('  OfflineStorageService inicializado');
 
     await Get.putAsync(() => LocationService().init());
-    debugPrint('✅ LocationService inicializado');
+    debugPrint('  LocationService inicializado');
 
     // WebSocket service (se conecta solo si hay autenticación)
     await Get.putAsync(() => WebSocketService().init());
-    debugPrint('✅ WebSocketService inicializado');
+    debugPrint('  WebSocketService inicializado');
 
     // Inicializar ThemeController (OPCIONAL: moverlo aquí)
     Get.put(ThemeController());
-    debugPrint('✅ ThemeController inicializado');
+    debugPrint('  ThemeController inicializado');
 
-    debugPrint('✅ Todos los servicios inicializados correctamente');
+    debugPrint('  Todos los servicios inicializados correctamente');
   } catch (e) {
     debugPrint('❌ Error inicializando servicios: $e');
   }

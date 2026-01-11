@@ -31,7 +31,7 @@ class LotesRepository {
           return handler.next(options);
         },
         onResponse: (response, handler) {
-          print('✅ Response [${response.statusCode}]: ${response.data}');
+          print('  Response [${response.statusCode}]: ${response.data}');
           return handler.next(response);
         },
         onError: (error, handler) {
@@ -64,7 +64,7 @@ class LotesRepository {
       if (response.statusCode == 200 && response.data['success'] == true) {
         final List<dynamic> data = response.data['data'] ?? [];
 
-        print('✅ Se obtuvieron ${data.length} lotes');
+        print('  Se obtuvieron ${data.length} lotes');
 
         return data.map((e) => LoteAsignadoModel.fromJson(e)).toList();
       }
@@ -92,7 +92,7 @@ class LotesRepository {
       print('📊 Response data: ${response.data}');
 
       if (response.statusCode == 200 && response.data['success'] == true) {
-        print('✅ Detalle del lote obtenido exitosamente');
+        print('  Detalle del lote obtenido exitosamente');
         return LoteDetalleViajeModel.fromJson(response.data['data']);
       }
 

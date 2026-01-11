@@ -48,7 +48,7 @@ class DashboardController extends GetxController {
 
       final lotes = await _lotesRepository.getMisLotes(filtro: filtro);
 
-      print('✅ Lotes cargados: ${lotes.length}');
+      print('  Lotes cargados: ${lotes.length}');
 
       if (filtro == 'activos') {
         lotesActivos.value = lotes;

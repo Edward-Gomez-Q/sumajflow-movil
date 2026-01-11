@@ -85,7 +85,7 @@ class LoginController extends GetxController {
         password: passwordController.text,
       );
 
-      debugPrint('✅ Login exitoso');
+      debugPrint('  Login exitoso');
       debugPrint('📥 Respuesta completa: $response');
 
       // Extraer datos
@@ -123,7 +123,7 @@ class LoginController extends GetxController {
         correo: correo,
       );
 
-      debugPrint('✅ Datos guardados en AuthService');
+      debugPrint('  Datos guardados en AuthService');
 
       isLoading.value = false;
 

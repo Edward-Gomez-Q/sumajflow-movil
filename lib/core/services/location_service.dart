@@ -159,7 +159,7 @@ class LocationService extends GetxService {
           );
 
       isTracking.value = true;
-      debugPrint('✅ Tracking iniciado');
+      debugPrint('  Tracking iniciado');
       return true;
     } catch (e) {
       errorMessage.value = 'Error al iniciar tracking: $e';

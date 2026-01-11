@@ -251,7 +251,7 @@ class _OnboardingState extends State<Onboarding> {
                     );
 
                     if (picked != null && mounted) {
-                      print('✅ Fecha seleccionada: $picked');
+                      print('  Fecha seleccionada: $picked');
                       controller.fechaNacimientoSeleccionada.value = picked;
 
                       final formattedDate =
