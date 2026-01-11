@@ -119,7 +119,7 @@ class Login extends StatelessWidget {
             decoration: InputDecoration(
               hintText: 'ejemplo@correo.com',
               hintStyle: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.textTheme.bodySmall?.color?.withOpacity(0.5),
+                color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.5),
                 fontWeight: FontWeight.normal,
               ),
               prefixIcon: Icon(
@@ -134,13 +134,13 @@ class Login extends StatelessWidget {
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(
-                  color: theme.colorScheme.outline.withOpacity(0.2),
+                  color: theme.colorScheme.outline.withValues(alpha: 0.2),
                 ),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(
-                  color: theme.colorScheme.outline.withOpacity(0.2),
+                  color: theme.colorScheme.outline.withValues(alpha: 0.2),
                 ),
               ),
               focusedBorder: OutlineInputBorder(
@@ -189,7 +189,7 @@ class Login extends StatelessWidget {
             decoration: InputDecoration(
               hintText: 'Ingresa tu contraseña',
               hintStyle: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.textTheme.bodySmall?.color?.withOpacity(0.5),
+                color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.5),
                 fontWeight: FontWeight.normal,
               ),
               prefixIcon: Icon(
@@ -210,13 +210,13 @@ class Login extends StatelessWidget {
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(
-                  color: theme.colorScheme.outline.withOpacity(0.2),
+                  color: theme.colorScheme.outline.withValues(alpha: 0.2),
                 ),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(
-                  color: theme.colorScheme.outline.withOpacity(0.2),
+                  color: theme.colorScheme.outline.withValues(alpha: 0.2),
                 ),
               ),
               focusedBorder: OutlineInputBorder(

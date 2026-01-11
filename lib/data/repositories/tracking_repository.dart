@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:sumajflow_movil/core/constants/api_constants.dart';
 import 'package:sumajflow_movil/core/services/auth_service.dart';
 import 'package:sumajflow_movil/data/models/tracking_models.dart';
+import 'package:flutter/rendering.dart';
 
 class TrackingRepository {
   late final Dio _dio;
@@ -28,7 +29,7 @@ class TrackingRepository {
           return handler.next(options);
         },
         onError: (error, handler) {
-          print('❌ Error en tracking repository: ${error.message}');
+          debugPrint('❌ Error en tracking repository: ${error.message}');
           return handler.next(error);
         },
       ),

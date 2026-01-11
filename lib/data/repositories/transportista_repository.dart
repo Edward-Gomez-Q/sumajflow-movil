@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:sumajflow_movil/core/constants/api_constants.dart';
 import 'package:sumajflow_movil/data/models/transportista_model.dart';
 import 'package:sumajflow_movil/data/providers/api_provider.dart';
+import 'package:flutter/rendering.dart';
 
 /// Repositorio para operaciones relacionadas con transportistas
 class TransportistaRepository {
@@ -30,33 +31,33 @@ class TransportistaRepository {
         'fechaVencimientoLicencia': transportista.fechaVencimientoLicencia,
       };
 
-      print('📤 Enviando datos al backend: $data');
+      debugPrint('📤 Enviando datos al backend: $data');
 
       final response = await _apiProvider.post(
         ApiConstants.completarOnboardingEndpoint,
         data,
       );
 
-      print('📥 Status code: ${response.statusCode}');
-      print('📥 Response data: ${response.data}');
+      debugPrint('📥 Status code: ${response.statusCode}');
+      debugPrint('📥 Response data: ${response.data}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        print('  Onboarding completado exitosamente');
+        debugPrint('  Onboarding completado exitosamente');
 
         //   Asegurarse de devolver la estructura correcta
         if (response.data is Map<String, dynamic>) {
           return response.data as Map<String, dynamic>;
         } else {
-          print('⚠️ La respuesta no es un Map<String, dynamic>');
+          debugPrint('⚠️ La respuesta no es un Map<String, dynamic>');
           return null;
         }
       } else {
-        print('❌ Error en respuesta del servidor: ${response.statusCode}');
+        debugPrint('❌ Error en respuesta del servidor: ${response.statusCode}');
         return null;
       }
     } catch (e, stackTrace) {
-      print('❌ Error en completarOnboarding: $e');
-      print('Stack trace: $stackTrace');
+      debugPrint('❌ Error en completarOnboarding: $e');
+      debugPrint('Stack trace: $stackTrace');
       rethrow;
     }
   }
@@ -64,12 +65,12 @@ class TransportistaRepository {
   /// Sube un archivo a MinIO usando el ApiProvider
   Future<String> uploadFile(File file, String folder) async {
     try {
-      print('📤 Subiendo archivo a MinIO en carpeta: $folder');
+      debugPrint('📤 Subiendo archivo a MinIO en carpeta: $folder');
       final objectName = await _apiProvider.uploadFile(file, folder: folder);
-      print('  Archivo subido exitosamente: $objectName');
+      debugPrint('  Archivo subido exitosamente: $objectName');
       return objectName;
     } catch (e) {
-      print('❌ Error al subir archivo: $e');
+      debugPrint('❌ Error al subir archivo: $e');
       rethrow;
     }
   }
@@ -86,7 +87,7 @@ class TransportistaRepository {
       }
       return null;
     } catch (e) {
-      print('❌ Error al validar token: $e');
+      debugPrint('❌ Error al validar token: $e');
       return null;
     }
   }

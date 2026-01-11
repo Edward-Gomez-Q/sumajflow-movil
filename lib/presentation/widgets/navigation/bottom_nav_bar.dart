@@ -44,7 +44,7 @@ class AppBottomNavBar extends StatelessWidget {
         color: backgroundColor ?? theme.colorScheme.surface,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, -2),
           ),
@@ -64,7 +64,7 @@ class AppBottomNavBar extends StatelessWidget {
                 selectedColor: selectedItemColor ?? theme.colorScheme.primary,
                 unselectedColor:
                     unselectedItemColor ??
-                    theme.colorScheme.onSurface.withOpacity(0.6),
+                    theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
           ),
@@ -101,7 +101,7 @@ class _NavBarItem extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
             color: isSelected
-                ? selectedColor.withOpacity(0.1)
+                ? selectedColor.withValues(alpha: 0.1)
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
           ),

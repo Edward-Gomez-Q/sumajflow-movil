@@ -1,5 +1,5 @@
 // lib/data/repositories/lotes_repository.dart
-
+import 'package:flutter/rendering.dart';
 import 'package:dio/dio.dart';
 import 'package:sumajflow_movil/core/constants/api_constants.dart';
 import 'package:sumajflow_movil/core/services/auth_service.dart';
@@ -25,18 +25,18 @@ class LotesRepository {
           if (token != null) {
             options.headers['Authorization'] = 'Bearer $token';
           }
-          print('🔵 Request: ${options.method} ${options.path}');
-          print('🔵 Headers: ${options.headers}');
-          print('🔵 Query Params: ${options.queryParameters}');
+          debugPrint('🔵 Request: ${options.method} ${options.path}');
+          debugPrint('🔵 Headers: ${options.headers}');
+          debugPrint('🔵 Query Params: ${options.queryParameters}');
           return handler.next(options);
         },
         onResponse: (response, handler) {
-          print('  Response [${response.statusCode}]: ${response.data}');
+          debugPrint('  Response [${response.statusCode}]: ${response.data}');
           return handler.next(response);
         },
         onError: (error, handler) {
-          print('❌ Error en lotes repository: ${error.message}');
-          print('❌ Response: ${error.response?.data}');
+          debugPrint('❌ Error en lotes repository: ${error.message}');
+          debugPrint('❌ Response: ${error.response?.data}');
           return handler.next(error);
         },
       ),
@@ -51,30 +51,30 @@ class LotesRepository {
     String filtro = 'activos',
   }) async {
     try {
-      print('📋 Obteniendo lotes con filtro: $filtro');
+      debugPrint('📋 Obteniendo lotes con filtro: $filtro');
 
       final response = await _dio.get(
         '/transportista/mis-lotes',
         queryParameters: {'filtro': filtro},
       );
 
-      print('📊 Response status: ${response.statusCode}');
-      print('📊 Response data: ${response.data}');
+      debugPrint('📊 Response status: ${response.statusCode}');
+      debugPrint('📊 Response data: ${response.data}');
 
       if (response.statusCode == 200 && response.data['success'] == true) {
         final List<dynamic> data = response.data['data'] ?? [];
 
-        print('  Se obtuvieron ${data.length} lotes');
+        debugPrint('  Se obtuvieron ${data.length} lotes');
 
         return data.map((e) => LoteAsignadoModel.fromJson(e)).toList();
       }
 
       throw Exception(response.data['message'] ?? 'Error al obtener lotes');
     } on DioException catch (e) {
-      print('❌ DioException en getMisLotes: ${e.message}');
+      debugPrint('❌ DioException en getMisLotes: ${e.message}');
       throw _handleDioError(e);
     } catch (e) {
-      print('❌ Exception en getMisLotes: $e');
+      debugPrint('❌ Exception en getMisLotes: $e');
       rethrow;
     }
   }
@@ -82,26 +82,28 @@ class LotesRepository {
   /// Obtiene el detalle de un lote para iniciar viaje
   Future<LoteDetalleViajeModel> getDetalleLote(int asignacionId) async {
     try {
-      print('📋 Obteniendo detalle del lote con asignacionId: $asignacionId');
+      debugPrint(
+        '📋 Obteniendo detalle del lote con asignacionId: $asignacionId',
+      );
 
       final response = await _dio.get(
         '/transportista/lote/$asignacionId/detalle',
       );
 
-      print('📊 Response status: ${response.statusCode}');
-      print('📊 Response data: ${response.data}');
+      debugPrint('📊 Response status: ${response.statusCode}');
+      debugPrint('📊 Response data: ${response.data}');
 
       if (response.statusCode == 200 && response.data['success'] == true) {
-        print('  Detalle del lote obtenido exitosamente');
+        debugPrint('  Detalle del lote obtenido exitosamente');
         return LoteDetalleViajeModel.fromJson(response.data['data']);
       }
 
       throw Exception(response.data['message'] ?? 'Error al obtener detalle');
     } on DioException catch (e) {
-      print('❌ DioException en getDetalleLote: ${e.message}');
+      debugPrint('❌ DioException en getDetalleLote: ${e.message}');
       throw _handleDioError(e);
     } catch (e) {
-      print('❌ Exception en getDetalleLote: $e');
+      debugPrint('❌ Exception en getDetalleLote: $e');
       rethrow;
     }
   }

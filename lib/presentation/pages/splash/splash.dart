@@ -28,10 +28,10 @@ class _SplashState extends State<Splash> {
     final authService = AuthService.to;
 
     if (authService.isAuthenticated) {
-      print('  Usuario autenticado, navegando a dashboard');
+      debugPrint('  Usuario autenticado, navegando a dashboard');
       context.go(RouteNames.dashboard);
     } else {
-      print('⚠️ Usuario no autenticado, navegando a home');
+      debugPrint('⚠️ Usuario no autenticado, navegando a home');
       context.go(RouteNames.home);
     }
   }

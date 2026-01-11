@@ -108,7 +108,9 @@ class _LotesPageState extends State<LotesPage> {
                       _controller.cargarLotesPorFiltro(apiFiltro);
                     },
                     backgroundColor: theme.colorScheme.surface,
-                    selectedColor: theme.colorScheme.primary.withOpacity(0.2),
+                    selectedColor: theme.colorScheme.primary.withValues(
+                      alpha: 0.2,
+                    ),
                     labelStyle: TextStyle(
                       color: isSelected
                           ? theme.colorScheme.primary
@@ -201,20 +203,20 @@ class _LotesPageState extends State<LotesPage> {
           Icon(
             Icons.inventory_2_outlined,
             size: 64,
-            color: theme.colorScheme.onSurface.withOpacity(0.3),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
           ),
           const SizedBox(height: 16),
           Text(
             'No se encontraron lotes',
             style: theme.textTheme.titleMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.6),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Intenta con otros filtros',
             style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.4),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
             ),
           ),
         ],

@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sumajflow_movil/core/services/auth_service.dart';
-import 'package:sumajflow_movil/data/models/lote_models.dart';
 import 'package:sumajflow_movil/presentation/pages/dashboard/dashboard.dart';
 import 'package:sumajflow_movil/presentation/pages/login/login.dart';
 import 'package:sumajflow_movil/presentation/pages/lotes/lote_detalle_page.dart';
 import 'package:sumajflow_movil/presentation/pages/splash/splash.dart';
 import 'package:sumajflow_movil/presentation/pages/home/home.dart';
 import 'package:sumajflow_movil/presentation/pages/qr_scanner/qr_scanner.dart';
-import 'package:sumajflow_movil/presentation/pages/trazabilidad/trazabilidad_page.dart';
 import 'package:sumajflow_movil/presentation/pages/verificacion_codigo/verificacion_codigo.dart';
 import 'package:sumajflow_movil/presentation/pages/onboarding/onboarding.dart';
 import 'package:sumajflow_movil/presentation/pages/success/success.dart';
@@ -16,6 +14,7 @@ import 'package:sumajflow_movil/presentation/pages/lotes/lotes_page.dart';
 import 'package:sumajflow_movil/presentation/pages/notificaciones/notificaciones_page.dart';
 import 'package:sumajflow_movil/presentation/pages/perfil/perfil_page.dart';
 import 'package:sumajflow_movil/config/routes/route_names.dart';
+import 'package:sumajflow_movil/presentation/pages/viaje/viaje_page.dart';
 import 'package:sumajflow_movil/presentation/widgets/navigation/bottom_nav_bar.dart';
 
 // Navegación de shell para páginas con bottom nav
@@ -184,7 +183,7 @@ class AppRouter {
 
           final controllerTag = 'trazabilidad_$asignacionId';
 
-          return TrazabilidadPage(
+          return ViajePage(
             asignacionId: asignacionId,
             controllerTag: controllerTag,
             loteDetalle: null,

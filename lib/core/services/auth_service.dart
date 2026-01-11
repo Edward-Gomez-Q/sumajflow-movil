@@ -1,4 +1,5 @@
 // lib/core/services/auth_service.dart
+import 'package:flutter/rendering.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -31,10 +32,10 @@ class AuthService extends GetxService {
       _correo.value = prefs.getString('correo');
 
       if (_authToken.value != null) {
-        print('  Sesión cargada: Usuario ID ${_usuarioId.value}');
+        debugPrint('  Sesión cargada: Usuario ID ${_usuarioId.value}');
       }
     } catch (e) {
-      print('❌ Error al cargar datos de autenticación: $e');
+      debugPrint('❌ Error al cargar datos de autenticación: $e');
     }
   }
 
@@ -58,13 +59,13 @@ class AuthService extends GetxService {
       _transportistaId.value = transportistaId;
       _correo.value = correo;
 
-      print('  Datos de autenticación guardados');
-      print('   - Token: ${token.substring(0, 20)}...');
-      print('   - Usuario ID: $usuarioId');
-      print('   - Transportista ID: $transportistaId');
-      print('   - Correo: $correo');
+      debugPrint('  Datos de autenticación guardados');
+      debugPrint('   - Token: ${token.substring(0, 20)}...');
+      debugPrint('   - Usuario ID: $usuarioId');
+      debugPrint('   - Transportista ID: $transportistaId');
+      debugPrint('   - Correo: $correo');
     } catch (e) {
-      print('❌ Error al guardar datos de autenticación: $e');
+      debugPrint('❌ Error al guardar datos de autenticación: $e');
       rethrow;
     }
   }
@@ -84,9 +85,9 @@ class AuthService extends GetxService {
       _transportistaId.value = null;
       _correo.value = null;
 
-      print('  Sesión cerrada correctamente');
+      debugPrint('  Sesión cerrada correctamente');
     } catch (e) {
-      print('❌ Error al limpiar datos de autenticación: $e');
+      debugPrint('❌ Error al limpiar datos de autenticación: $e');
       rethrow;
     }
   }

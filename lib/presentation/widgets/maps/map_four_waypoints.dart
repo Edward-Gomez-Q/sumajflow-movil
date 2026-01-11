@@ -1,11 +1,11 @@
-// lib/presentation/widgets/maps/map_four_waypoints.dart
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
+import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import 'package:sumajflow_movil/data/models/lote_models.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 
 class MapFourWaypoints extends StatefulWidget {
   final List<WaypointModel> waypoints;
@@ -25,12 +25,20 @@ class _MapFourWaypointsState extends State<MapFourWaypoints> {
   List<LatLng> _routePoints = [];
   bool _isLoading = true;
   bool _routeError = false;
-  http.Client? _httpClient; //   Cliente HTTP para poder cancelar peticiones
+  http.Client? _httpClient;
+
+  late final TileProvider _tileProvider;
 
   @override
   void initState() {
     super.initState();
-    _httpClient = http.Client(); //   Inicializar cliente
+    _httpClient = http.Client();
+
+    _tileProvider = FMTCTileProvider(
+      stores: const {'sumajflowMapStore': BrowseStoreStrategy.readUpdateCreate},
+      loadingStrategy: BrowseLoadingStrategy.cacheFirst,
+    );
+
     _fetchRoute();
   }
 
@@ -44,14 +52,12 @@ class _MapFourWaypointsState extends State<MapFourWaypoints> {
 
   @override
   void dispose() {
-    //   Cancelar peticiones pendientes y cerrar cliente
     _httpClient?.close();
     _httpClient = null;
     super.dispose();
   }
 
   Future<void> _fetchRoute() async {
-    //   Verificar si el widget está montado antes de setState
     if (!mounted) return;
 
     setState(() {
@@ -65,15 +71,13 @@ class _MapFourWaypointsState extends State<MapFourWaypoints> {
           .toList();
 
       if (waypointsValidos.isEmpty) {
-        if (!mounted) return; //   Verificar antes de setState
-        setState(() {
-          _isLoading = false;
-        });
+        if (!mounted) return;
+        setState(() => _isLoading = false);
         return;
       }
 
       if (waypointsValidos.length < 4) {
-        if (!mounted) return; //   Verificar antes de setState
+        if (!mounted) return;
         setState(() {
           _routePoints = waypointsValidos
               .map((w) => LatLng(w.latitud!, w.longitud!))
@@ -92,12 +96,10 @@ class _MapFourWaypointsState extends State<MapFourWaypoints> {
         'https://router.project-osrm.org/route/v1/driving/$coordinates?overview=full&geometries=polyline',
       );
 
-      //   Usar el cliente HTTP que puede ser cancelado
       final response = await _httpClient
           ?.get(url)
           .timeout(const Duration(seconds: 10));
 
-      //   Verificar si la respuesta es null (widget fue disposed)
       if (response == null || !mounted) return;
 
       if (response.statusCode == 200) {
@@ -111,22 +113,19 @@ class _MapFourWaypointsState extends State<MapFourWaypoints> {
 
           final decodedPoints = _decodePolyline(geometry);
 
-          if (!mounted) return; //   Verificar antes de setState
+          if (!mounted) return;
           setState(() {
             _routePoints = decodedPoints;
             _isLoading = false;
             _routeError = false;
           });
-        } else {
-          _useFallbackRoute(waypointsValidos);
+          return;
         }
-      } else {
-        _useFallbackRoute(waypointsValidos);
       }
-    } catch (e) {
-      //   Si el widget fue disposed, no hacer nada
-      if (!mounted) return;
 
+      _useFallbackRoute(waypointsValidos);
+    } catch (_) {
+      if (!mounted) return;
       final waypointsValidos = widget.waypoints
           .where((w) => w.tieneCoordenadas)
           .toList();
@@ -135,7 +134,7 @@ class _MapFourWaypointsState extends State<MapFourWaypoints> {
   }
 
   void _useFallbackRoute(List<WaypointModel> waypoints) {
-    if (!mounted) return; //   Verificar antes de setState
+    if (!mounted) return;
 
     setState(() {
       _routePoints = waypoints
@@ -208,7 +207,7 @@ class _MapFourWaypointsState extends State<MapFourWaypoints> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -232,6 +231,8 @@ class _MapFourWaypointsState extends State<MapFourWaypoints> {
                 TileLayer(
                   urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                   userAgentPackageName: 'bo.edu.ucb.sumajflow',
+                  tileProvider: _tileProvider,
+                  errorTileCallback: (tile, error, stackTrace) {},
                 ),
 
                 if (_routePoints.isNotEmpty)
@@ -243,7 +244,6 @@ class _MapFourWaypointsState extends State<MapFourWaypoints> {
                         color: theme.colorScheme.primary,
                         borderStrokeWidth: 1.5,
                         borderColor: Colors.white,
-                        isDotted: _routeError,
                       ),
                     ],
                   ),
@@ -254,38 +254,19 @@ class _MapFourWaypointsState extends State<MapFourWaypoints> {
                       point: LatLng(waypoint.latitud!, waypoint.longitud!),
                       width: 38,
                       height: 38,
-                      child: TweenAnimationBuilder<double>(
-                        duration: Duration(
-                          milliseconds: 400 + (waypoint.orden * 150),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: _hexToColor(waypoint.color),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2.5),
                         ),
-                        curve: Curves.elasticOut,
-                        tween: Tween(begin: 0, end: 1),
-                        builder: (context, value, child) {
-                          return Transform.scale(scale: value, child: child);
-                        },
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: _hexToColor(waypoint.color),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2.5),
-                            boxShadow: [
-                              BoxShadow(
-                                color: _hexToColor(
-                                  waypoint.color,
-                                ).withOpacity(0.4),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Center(
-                            child: Text(
-                              waypoint.orden.toString(),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 15,
-                              ),
+                        child: Center(
+                          child: Text(
+                            waypoint.orden.toString(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 15,
                             ),
                           ),
                         ),
@@ -300,7 +281,7 @@ class _MapFourWaypointsState extends State<MapFourWaypoints> {
           if (_isLoading)
             Container(
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.2),
+                color: Colors.black.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Center(
@@ -309,12 +290,6 @@ class _MapFourWaypointsState extends State<MapFourWaypoints> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 8,
-                      ),
-                    ],
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -343,49 +318,6 @@ class _MapFourWaypointsState extends State<MapFourWaypoints> {
                 ),
               ),
             ),
-
-          if (_routeError && !_isLoading)
-            Positioned(
-              top: 12,
-              left: 12,
-              right: 12,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.95),
-                  borderRadius: BorderRadius.circular(10),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 6,
-                    ),
-                  ],
-                ),
-                child: const Row(
-                  children: [
-                    Icon(
-                      Icons.info_outline_rounded,
-                      color: Colors.white,
-                      size: 18,
-                    ),
-                    SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        'Ruta aproximada en línea recta',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
         ],
       ),
     );
@@ -398,7 +330,6 @@ class _MapFourWaypointsState extends State<MapFourWaypoints> {
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.colorScheme.outline.withOpacity(0.2)),
       ),
       child: Center(
         child: Column(
@@ -407,13 +338,13 @@ class _MapFourWaypointsState extends State<MapFourWaypoints> {
             Icon(
               Icons.location_off_rounded,
               size: 48,
-              color: theme.colorScheme.onSurface.withOpacity(0.3),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
             ),
             const SizedBox(height: 12),
             Text(
               'Mapa no disponible',
               style: TextStyle(
-                color: theme.colorScheme.onSurface.withOpacity(0.5),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
               ),

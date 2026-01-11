@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:sumajflow_movil/core/services/notification_service.dart';
 import 'package:sumajflow_movil/data/models/lote_models.dart';
 import 'package:sumajflow_movil/data/repositories/lotes_repository.dart';
+import 'package:flutter/rendering.dart';
 
 class DashboardController extends GetxController {
   final LotesRepository _lotesRepository = LotesRepository();
@@ -42,13 +43,13 @@ class DashboardController extends GetxController {
   /// Carga lotes según el filtro seleccionado
   Future<void> cargarLotesPorFiltro(String filtro) async {
     try {
-      print('🔄 Cargando lotes con filtro: $filtro');
+      debugPrint('🔄 Cargando lotes con filtro: $filtro');
 
       filtroActual.value = filtro;
 
       final lotes = await _lotesRepository.getMisLotes(filtro: filtro);
 
-      print('  Lotes cargados: ${lotes.length}');
+      debugPrint('  Lotes cargados: ${lotes.length}');
 
       if (filtro == 'activos') {
         lotesActivos.value = lotes;
@@ -59,7 +60,7 @@ class DashboardController extends GetxController {
       // Siempre actualizar estadísticas
       await calcularEstadisticas();
     } catch (e) {
-      print('❌ Error al cargar lotes: $e');
+      debugPrint('❌ Error al cargar lotes: $e');
       _notificationService.showError(
         'Error',
         'No se pudieron cargar los lotes: ${e.toString()}',
@@ -93,11 +94,11 @@ class DashboardController extends GetxController {
         return lote.estaCompletado;
       }).length;
 
-      print('📊 Estadísticas actualizadas:');
-      print('   En tránsito: ${totalEnTransito.value}');
-      print('   Completados: ${totalCompletados.value}');
+      debugPrint('📊 Estadísticas actualizadas:');
+      debugPrint('   En tránsito: ${totalEnTransito.value}');
+      debugPrint('   Completados: ${totalCompletados.value}');
     } catch (e) {
-      print('❌ Error al calcular estadísticas: $e');
+      debugPrint('❌ Error al calcular estadísticas: $e');
       // No mostramos error al usuario, solo log
     }
   }

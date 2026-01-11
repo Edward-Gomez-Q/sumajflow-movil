@@ -1,0 +1,724 @@
+// lib/presentation/getx/viaje_controller.dart
+
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:get/get.dart';
+import 'package:sumajflow_movil/core/services/location_service.dart';
+import 'package:sumajflow_movil/core/services/notification_service.dart';
+import 'package:sumajflow_movil/data/enums/estado_viaje.dart';
+import 'package:sumajflow_movil/data/models/lote_models.dart';
+import 'package:sumajflow_movil/data/repositories/lotes_repository.dart';
+import 'package:sumajflow_movil/data/repositories/viaje_repository.dart';
+import 'package:sumajflow_movil/presentation/getx/tracking_controller.dart';
+
+/// Controller de UI y eventos de negocio del viaje
+/// Delega el tracking GPS al TrackingController
+class ViajeController extends GetxController {
+  final int asignacionId;
+  final LoteDetalleViajeModel? loteDetalleInicial;
+
+  // Servicios
+  final LocationService _locationService = LocationService.to;
+  final NotificationService _notificationService = NotificationService.to;
+  final ViajeRepository _viajeRepository = ViajeRepository();
+  final LotesRepository _lotesRepository = LotesRepository();
+
+  // Tracking controller (composición)
+  late final TrackingController trackingController;
+
+  // Estado UI
+  final isLoading = false.obs;
+  final isInitializing = true.obs;
+  final errorMessage = ''.obs;
+
+  // Datos
+  final loteDetalle = Rxn<LoteDetalleViajeModel>();
+  final estadoActual = EstadoViaje.esperandoIniciar.obs;
+
+  // Formularios
+  final comentarioTemp = ''.obs;
+  final pesoBrutoTemp = 0.0.obs;
+  final pesoTaraTemp = 0.0.obs;
+  final evidenciasTemporales = <File>[].obs;
+  final evidenciasSubidas = <String>[].obs;
+  final subiendoEvidencia = false.obs;
+
+  // Geofencing
+  final distanciaAlDestino = Rxn<double>();
+  final dentroDeGeofence = false.obs;
+
+  // Radios de geofencing (metros)
+  static const double _radioMina = 500;
+  static const double _radioBalanza = 200;
+  static const double _radioAlmacen = 300;
+
+  ViajeController({required this.asignacionId, this.loteDetalleInicial});
+
+  @override
+  void onInit() {
+    super.onInit();
+
+    // Crear tracking controller
+    trackingController = TrackingController(asignacionId: asignacionId);
+
+    // Sincronizar estado inicial
+    if (loteDetalleInicial != null) {
+      loteDetalle.value = loteDetalleInicial;
+      _sincronizarEstadoDesdeBackend(loteDetalleInicial!.estado);
+    }
+
+    _inicializar();
+
+    // Escuchar cambios de ubicación del tracking controller
+    ever(trackingController.currentPosition, (_) => _calcularGeofencing());
+  }
+
+  // ============================================================
+  // INICIALIZACIÓN
+  // ============================================================
+
+  Future<void> _inicializar() async {
+    try {
+      isInitializing.value = true;
+      errorMessage.value = '';
+
+      debugPrint(
+        '🎯 Inicializando ViajeController - AsignacionId: $asignacionId',
+      );
+
+      // 1. Cargar detalle del lote si no existe
+      if (loteDetalle.value == null) {
+        final detalle = await _lotesRepository.getDetalleLote(asignacionId);
+        loteDetalle.value = detalle;
+        _sincronizarEstadoDesdeBackend(detalle.estado);
+      }
+
+      // 2. Si el viaje ya inició, iniciar tracking
+      if (estadoActual.value != EstadoViaje.esperandoIniciar) {
+        await trackingController.iniciarTracking();
+      }
+
+      // 3. Calcular geofencing inicial
+      _calcularGeofencing();
+
+      isInitializing.value = false;
+      debugPrint('✅ ViajeController inicializado correctamente');
+    } catch (e) {
+      debugPrint('❌ Error al inicializar ViajeController: $e');
+      errorMessage.value = e.toString();
+      isInitializing.value = false;
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (Get.context != null) {
+          _notificationService.showError('Error', e.toString());
+        }
+      });
+    }
+  }
+
+  void _sincronizarEstadoDesdeBackend(String estadoBackend) {
+    estadoActual.value = EstadoViaje.fromString(estadoBackend);
+    debugPrint(
+      '📊 Estado sincronizado: $estadoBackend -> ${estadoActual.value}',
+    );
+  }
+
+  Future<void> refrescar() async {
+    debugPrint('🔄 Refrescando controlador...');
+    await _inicializar();
+  }
+
+  // ============================================================
+  // EVENTOS DE NEGOCIO
+  // ============================================================
+
+  Future<void> ejecutarAccionPrincipal() async {
+    if (isLoading.value) {
+      debugPrint('⏳ Acción en progreso, ignorando...');
+      return;
+    }
+
+    try {
+      isLoading.value = true;
+
+      final pos = trackingController.currentPosition.value;
+      if (pos == null) {
+        throw Exception('No se pudo obtener la ubicación actual');
+      }
+
+      debugPrint('🎬 Ejecutando acción para estado: ${estadoActual.value}');
+
+      switch (estadoActual.value) {
+        case EstadoViaje.esperandoIniciar:
+          await _iniciarViaje(pos);
+          break;
+        case EstadoViaje.enCaminoMina:
+          await _confirmarLlegadaMina(pos);
+          break;
+        case EstadoViaje.esperandoCarguio:
+          await _iniciarCarguio();
+          break;
+        case EstadoViaje.cargandoMineral:
+          await _finalizarCarguio(pos);
+          break;
+        case EstadoViaje.carguioCompletado:
+          await _salirDeMina(pos);
+          break;
+        case EstadoViaje.enCaminoBalanzaCoop:
+          await _registrarPesajeCoop(pos);
+          break;
+        case EstadoViaje.enCaminoBalanzaDestino:
+          await _registrarPesajeDestino(pos);
+          break;
+        case EstadoViaje.rutaCompletada:
+          await _iniciarDescarga(pos);
+          break;
+        case EstadoViaje.descargando:
+          await _finalizarDescarga(pos);
+          break;
+        default:
+          debugPrint('⚠️ No hay acción definida para este estado');
+          break;
+      }
+    } catch (e) {
+      debugPrint('❌ Error en ejecutarAccionPrincipal: $e');
+      _mostrarNotificacion('Error', e.toString(), esError: true);
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> _iniciarViaje(Position pos) async {
+    debugPrint('🚀 Iniciando viaje...');
+
+    final response = await _viajeRepository.iniciarViaje(
+      asignacionId: asignacionId,
+      lat: pos.latitude,
+      lng: pos.longitude,
+      observaciones: comentarioTemp.value.isNotEmpty
+          ? comentarioTemp.value
+          : null,
+    );
+
+    if (response.success) {
+      debugPrint('✅ Viaje iniciado exitosamente');
+
+      // Sincronizar estado
+      _sincronizarEstadoDesdeBackend(response.estadoNuevo);
+
+      // Iniciar tracking
+      await trackingController.iniciarTracking();
+
+      _mostrarNotificacion('Viaje iniciado', response.proximoPaso);
+      _limpiarFormulario();
+    } else {
+      throw Exception(response.message);
+    }
+  }
+
+  Future<void> _confirmarLlegadaMina(Position pos) async {
+    debugPrint('📍 Confirmando llegada a mina...');
+
+    final response = await _viajeRepository.confirmarLlegadaMina(
+      asignacionId: asignacionId,
+      lat: pos.latitude,
+      lng: pos.longitude,
+      observaciones: comentarioTemp.value.isNotEmpty
+          ? comentarioTemp.value
+          : null,
+      fotosUrls: evidenciasSubidas.isNotEmpty
+          ? evidenciasSubidas.toList()
+          : null,
+    );
+
+    if (response.success) {
+      _sincronizarEstadoDesdeBackend(response.estadoNuevo);
+      _mostrarNotificacion('Llegada confirmada', response.proximoPaso);
+      _limpiarFormulario();
+    } else {
+      throw Exception(response.message);
+    }
+  }
+
+  Future<void> _iniciarCarguio() async {
+    debugPrint('⚙️ Iniciando carguío...');
+    // Transición local para mostrar UI de carga
+    estadoActual.value = EstadoViaje.cargandoMineral;
+    _mostrarNotificacion(
+      'Carguío iniciado',
+      'Toma fotos al finalizar',
+      esInfo: true,
+    );
+  }
+
+  Future<void> _finalizarCarguio(Position pos) async {
+    debugPrint('✅ Finalizando carguío...');
+
+    // Validar evidencias
+    if (evidenciasTemporales.isEmpty && evidenciasSubidas.isEmpty) {
+      throw Exception('Debes tomar al menos una foto como evidencia');
+    }
+
+    // Subir evidencias pendientes
+    await _subirEvidenciasPendientes();
+
+    final response = await _viajeRepository.confirmarCarguio(
+      asignacionId: asignacionId,
+      lat: pos.latitude,
+      lng: pos.longitude,
+      observaciones: comentarioTemp.value.isNotEmpty
+          ? comentarioTemp.value
+          : null,
+      fotosUrls: evidenciasSubidas.isNotEmpty
+          ? evidenciasSubidas.toList()
+          : null,
+    );
+
+    if (response.success) {
+      _sincronizarEstadoDesdeBackend(response.estadoNuevo);
+      _mostrarNotificacion('Carguío completado', response.proximoPaso);
+      _limpiarFormulario();
+    } else {
+      throw Exception(response.message);
+    }
+  }
+
+  Future<void> _salirDeMina(Position pos) async {
+    debugPrint('🚗 Saliendo de la mina...');
+    // Transición local
+    estadoActual.value = EstadoViaje.enCaminoBalanzaCoop;
+    _mostrarNotificacion(
+      'En camino',
+      'Dirígete a la balanza de la cooperativa',
+      esInfo: true,
+    );
+  }
+
+  Future<void> _registrarPesajeCoop(Position pos) async {
+    debugPrint('⚖️ Registrando pesaje cooperativa...');
+    _validarDatosPesaje();
+    await _subirEvidenciasPendientes();
+
+    final response = await _viajeRepository.registrarPesaje(
+      asignacionId: asignacionId,
+      tipoPesaje: 'cooperativa',
+      pesoBrutoKg: pesoBrutoTemp.value,
+      pesoTaraKg: pesoTaraTemp.value,
+      observaciones: comentarioTemp.value.isNotEmpty
+          ? comentarioTemp.value
+          : null,
+      ticketPesajeUrl: evidenciasSubidas.isNotEmpty
+          ? evidenciasSubidas.first
+          : null,
+    );
+
+    if (response.success) {
+      _sincronizarEstadoDesdeBackend(response.estadoNuevo);
+      _mostrarNotificacion('Pesaje registrado', response.proximoPaso);
+      _limpiarFormulario();
+    } else {
+      throw Exception(response.message);
+    }
+  }
+
+  Future<void> _registrarPesajeDestino(Position pos) async {
+    debugPrint('⚖️ Registrando pesaje destino...');
+    _validarDatosPesaje();
+    await _subirEvidenciasPendientes();
+
+    final response = await _viajeRepository.registrarPesaje(
+      asignacionId: asignacionId,
+      tipoPesaje: 'destino',
+      pesoBrutoKg: pesoBrutoTemp.value,
+      pesoTaraKg: pesoTaraTemp.value,
+      observaciones: comentarioTemp.value.isNotEmpty
+          ? comentarioTemp.value
+          : null,
+      ticketPesajeUrl: evidenciasSubidas.isNotEmpty
+          ? evidenciasSubidas.first
+          : null,
+    );
+
+    if (response.success) {
+      _sincronizarEstadoDesdeBackend(response.estadoNuevo);
+      _mostrarNotificacion('Pesaje registrado', response.proximoPaso);
+      _limpiarFormulario();
+    } else {
+      throw Exception(response.message);
+    }
+  }
+
+  Future<void> _iniciarDescarga(Position pos) async {
+    debugPrint('📦 Iniciando descarga...');
+
+    final response = await _viajeRepository.iniciarDescarga(
+      asignacionId: asignacionId,
+      lat: pos.latitude,
+      lng: pos.longitude,
+    );
+
+    if (response.success) {
+      _sincronizarEstadoDesdeBackend(response.estadoNuevo);
+      _mostrarNotificacion(
+        'Descarga iniciada',
+        response.proximoPaso,
+        esInfo: true,
+      );
+    } else {
+      throw Exception(response.message);
+    }
+  }
+
+  Future<void> _finalizarDescarga(Position pos) async {
+    debugPrint('✅ Finalizando descarga...');
+
+    if (evidenciasTemporales.isEmpty && evidenciasSubidas.isEmpty) {
+      throw Exception('Debes tomar al menos una foto como evidencia');
+    }
+
+    await _subirEvidenciasPendientes();
+
+    final response = await _viajeRepository.confirmarDescarga(
+      asignacionId: asignacionId,
+      lat: pos.latitude,
+      lng: pos.longitude,
+      observaciones: comentarioTemp.value.isNotEmpty
+          ? comentarioTemp.value
+          : null,
+      fotosUrls: evidenciasSubidas.isNotEmpty
+          ? evidenciasSubidas.toList()
+          : null,
+    );
+
+    if (response.success) {
+      _sincronizarEstadoDesdeBackend(response.estadoNuevo);
+      _mostrarNotificacion('¡Viaje completado!', 'Excelente trabajo');
+      trackingController.detenerTracking();
+      _limpiarFormulario();
+    } else {
+      throw Exception(response.message);
+    }
+  }
+
+  void _validarDatosPesaje() {
+    if (pesoBrutoTemp.value <= 0) {
+      throw Exception('Ingresa el peso bruto');
+    }
+    if (pesoTaraTemp.value <= 0) {
+      throw Exception('Ingresa el peso tara');
+    }
+    if (pesoTaraTemp.value >= pesoBrutoTemp.value) {
+      throw Exception('El peso tara debe ser menor al peso bruto');
+    }
+    if (evidenciasTemporales.isEmpty && evidenciasSubidas.isEmpty) {
+      throw Exception('Toma una foto del ticket de pesaje');
+    }
+  }
+
+  void _mostrarNotificacion(
+    String titulo,
+    String mensaje, {
+    bool esError = false,
+    bool esInfo = false,
+  }) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (Get.context != null) {
+        if (esError) {
+          _notificationService.showError(titulo, mensaje);
+        } else if (esInfo) {
+          _notificationService.showInfo(titulo, mensaje);
+        } else {
+          _notificationService.showSuccess(titulo, mensaje);
+        }
+      } else {
+        debugPrint('📢 $titulo: $mensaje');
+      }
+    });
+  }
+
+  // ============================================================
+  // EVIDENCIAS
+  // ============================================================
+
+  void agregarEvidencia(File file) {
+    if (evidenciasTemporales.length < 5) {
+      evidenciasTemporales.add(file);
+      debugPrint('📸 Evidencia agregada: ${file.path}');
+    }
+  }
+
+  void eliminarEvidencia(int index) {
+    if (index >= 0 && index < evidenciasTemporales.length) {
+      evidenciasTemporales.removeAt(index);
+      debugPrint('🗑️ Evidencia eliminada en índice: $index');
+    }
+  }
+
+  Future<void> _subirEvidenciasPendientes() async {
+    if (evidenciasTemporales.isEmpty) {
+      debugPrint('ℹ️ No hay evidencias pendientes de subir');
+      return;
+    }
+
+    subiendoEvidencia.value = true;
+    debugPrint('📤 Subiendo ${evidenciasTemporales.length} evidencias...');
+
+    try {
+      for (final file in evidenciasTemporales) {
+        debugPrint('📤 Subiendo evidencia: ${file.path}');
+        final objectName = await _viajeRepository.uploadEvidencia(
+          file,
+          asignacionId,
+        );
+        evidenciasSubidas.add(objectName);
+        debugPrint('✅ Evidencia subida: $objectName');
+      }
+      evidenciasTemporales.clear();
+      debugPrint('✅ Todas las evidencias subidas correctamente');
+    } catch (e) {
+      debugPrint('❌ Error al subir evidencias: $e');
+      rethrow;
+    } finally {
+      subiendoEvidencia.value = false;
+    }
+  }
+
+  // ============================================================
+  // FORMULARIOS
+  // ============================================================
+
+  void actualizarComentario(String valor) => comentarioTemp.value = valor;
+  void actualizarPesoBruto(double valor) => pesoBrutoTemp.value = valor;
+  void actualizarPesoTara(double valor) => pesoTaraTemp.value = valor;
+
+  double get pesoNetoCalculado {
+    if (pesoBrutoTemp.value <= 0 || pesoTaraTemp.value <= 0) return 0;
+    if (pesoTaraTemp.value >= pesoBrutoTemp.value) return 0;
+    return pesoBrutoTemp.value - pesoTaraTemp.value;
+  }
+
+  void _limpiarFormulario() {
+    comentarioTemp.value = '';
+    pesoBrutoTemp.value = 0.0;
+    pesoTaraTemp.value = 0.0;
+    evidenciasTemporales.clear();
+    evidenciasSubidas.clear();
+    debugPrint('🧹 Formulario limpiado');
+  }
+
+  // ============================================================
+  // GEOFENCING
+  // ============================================================
+
+  void _calcularGeofencing() {
+    final pos = trackingController.currentPosition.value;
+    final waypoint = proximoWaypoint;
+
+    if (pos == null || waypoint == null || !waypoint.tieneCoordenadas) {
+      distanciaAlDestino.value = null;
+      dentroDeGeofence.value = false;
+      return;
+    }
+
+    final distancia = _locationService.calculateDistance(
+      pos.latitude,
+      pos.longitude,
+      waypoint.latitud!,
+      waypoint.longitud!,
+    );
+
+    distanciaAlDestino.value = distancia;
+    final dentroAntes = dentroDeGeofence.value;
+    dentroDeGeofence.value = distancia <= _getRadioGeofence();
+
+    if (!dentroAntes && dentroDeGeofence.value) {
+      debugPrint('📍 Entró en geofence - Distancia: ${distancia.toInt()}m');
+    }
+  }
+
+  double _getRadioGeofence() {
+    switch (estadoActual.value) {
+      case EstadoViaje.enCaminoMina:
+        return _radioMina;
+      case EstadoViaje.enCaminoBalanzaCoop:
+      case EstadoViaje.enCaminoBalanzaDestino:
+        return _radioBalanza;
+      case EstadoViaje.rutaCompletada:
+        return _radioAlmacen;
+      default:
+        return _radioMina;
+    }
+  }
+
+  // ============================================================
+  // GETTERS PARA UI
+  // ============================================================
+
+  bool get isOnline => trackingController.isOnline.value;
+  bool get isPaused => trackingController.isPaused.value;
+  bool get estaDentroDelGeofence => dentroDeGeofence.value;
+
+  WaypointModel? get proximoWaypoint {
+    final lote = loteDetalle.value;
+    if (lote == null) return null;
+
+    switch (estadoActual.value) {
+      case EstadoViaje.esperandoIniciar:
+      case EstadoViaje.enCaminoMina:
+        return lote.puntoOrigen;
+      case EstadoViaje.enCaminoBalanzaCoop:
+      case EstadoViaje.carguioCompletado:
+        return lote.puntoBalanzaCoop;
+      case EstadoViaje.enCaminoBalanzaDestino:
+        return lote.puntoBalanzaDestino;
+      case EstadoViaje.rutaCompletada:
+        return lote.puntoAlmacenDestino;
+      default:
+        return null;
+    }
+  }
+
+  String get distanciaFormateada {
+    final dist = distanciaAlDestino.value;
+    if (dist == null) return 'Calculando...';
+    if (dist < 1000) return '${dist.toInt()} m';
+    return '${(dist / 1000).toStringAsFixed(1)} km';
+  }
+
+  String get textoBotonPrincipal {
+    switch (estadoActual.value) {
+      case EstadoViaje.esperandoIniciar:
+        return 'Iniciar Viaje';
+      case EstadoViaje.enCaminoMina:
+        return dentroDeGeofence.value ? 'Confirmar Llegada' : 'En camino...';
+      case EstadoViaje.esperandoCarguio:
+        return 'Iniciar Carga';
+      case EstadoViaje.cargandoMineral:
+        return 'Finalizar Carga';
+      case EstadoViaje.carguioCompletado:
+        return 'Continuar Viaje';
+      case EstadoViaje.enCaminoBalanzaCoop:
+        return dentroDeGeofence.value ? 'Registrar Pesaje' : 'En camino...';
+      case EstadoViaje.pesajeBalanzaCoop:
+        return 'Confirmar Pesaje';
+      case EstadoViaje.enCaminoBalanzaDestino:
+        return dentroDeGeofence.value ? 'Registrar Pesaje' : 'En camino...';
+      case EstadoViaje.pesajeBalanzaDestino:
+        return 'Confirmar Pesaje';
+      case EstadoViaje.rutaCompletada:
+        return dentroDeGeofence.value ? 'Iniciar Descarga' : 'En camino...';
+      case EstadoViaje.descargando:
+        return 'Finalizar Descarga';
+      case EstadoViaje.completado:
+        return 'Viaje Completado';
+      default:
+        return 'Continuar';
+    }
+  }
+
+  IconData get iconoBotonPrincipal {
+    switch (estadoActual.value) {
+      case EstadoViaje.esperandoIniciar:
+        return Icons.play_arrow_rounded;
+      case EstadoViaje.enCaminoMina:
+      case EstadoViaje.enCaminoBalanzaCoop:
+      case EstadoViaje.enCaminoBalanzaDestino:
+      case EstadoViaje.rutaCompletada:
+        return dentroDeGeofence.value
+            ? Icons.check_rounded
+            : Icons.navigation_rounded;
+      case EstadoViaje.esperandoCarguio:
+      case EstadoViaje.cargandoMineral:
+        return Icons.inventory_2_rounded;
+      case EstadoViaje.carguioCompletado:
+        return Icons.arrow_forward_rounded;
+      case EstadoViaje.pesajeBalanzaCoop:
+      case EstadoViaje.pesajeBalanzaDestino:
+        return Icons.scale_rounded;
+      case EstadoViaje.descargando:
+        return Icons.download_rounded;
+      case EstadoViaje.completado:
+        return Icons.check_circle_rounded;
+      default:
+        return Icons.arrow_forward_rounded;
+    }
+  }
+
+  RxBool get botonPrincipalHabilitado {
+    final habilitado = _evaluarBotonHabilitado();
+    return habilitado.obs;
+  }
+
+  bool _evaluarBotonHabilitado() {
+    if (isLoading.value) return false;
+
+    switch (estadoActual.value) {
+      case EstadoViaje.esperandoIniciar:
+        return true;
+      case EstadoViaje.enCaminoMina:
+      case EstadoViaje.enCaminoBalanzaCoop:
+      case EstadoViaje.enCaminoBalanzaDestino:
+      case EstadoViaje.rutaCompletada:
+        return dentroDeGeofence.value;
+      case EstadoViaje.esperandoCarguio:
+        return true;
+      case EstadoViaje.cargandoMineral:
+        return evidenciasTemporales.isNotEmpty || evidenciasSubidas.isNotEmpty;
+      case EstadoViaje.carguioCompletado:
+        return true;
+      case EstadoViaje.pesajeBalanzaCoop:
+      case EstadoViaje.pesajeBalanzaDestino:
+        return pesoBrutoTemp.value > 0 &&
+            pesoTaraTemp.value > 0 &&
+            pesoTaraTemp.value < pesoBrutoTemp.value &&
+            (evidenciasTemporales.isNotEmpty || evidenciasSubidas.isNotEmpty);
+      case EstadoViaje.descargando:
+        return evidenciasTemporales.isNotEmpty || evidenciasSubidas.isNotEmpty;
+      case EstadoViaje.completado:
+        return false;
+      default:
+        return false;
+    }
+  }
+
+  String get descripcionEstadoActual {
+    switch (estadoActual.value) {
+      case EstadoViaje.esperandoIniciar:
+        return 'Listo para comenzar el viaje';
+      case EstadoViaje.enCaminoMina:
+        return 'Dirígete a la mina ${loteDetalle.value?.minaNombre ?? ""}';
+      case EstadoViaje.esperandoCarguio:
+        return 'Esperando turno para cargar';
+      case EstadoViaje.cargandoMineral:
+        return 'Cargando mineral en el camión';
+      case EstadoViaje.carguioCompletado:
+        return 'Carga lista, continúa el viaje';
+      case EstadoViaje.enCaminoBalanzaCoop:
+        return 'Hacia balanza de cooperativa';
+      case EstadoViaje.pesajeBalanzaCoop:
+        return 'Registra el pesaje';
+      case EstadoViaje.enCaminoBalanzaDestino:
+        return 'Hacia balanza de destino';
+      case EstadoViaje.pesajeBalanzaDestino:
+        return 'Registra el pesaje final';
+      case EstadoViaje.rutaCompletada:
+        return 'Llegando al punto de descarga';
+      case EstadoViaje.descargando:
+        return 'Descargando mineral';
+      case EstadoViaje.completado:
+        return 'Viaje finalizado exitosamente';
+      default:
+        return '';
+    }
+  }
+
+  double get progresoViaje => estadoActual.value.progreso;
+
+  @override
+  void onClose() {
+    debugPrint('🔚 Cerrando ViajeController...');
+    trackingController.detenerTracking();
+    super.onClose();
+  }
+}

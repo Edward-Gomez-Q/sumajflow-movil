@@ -65,7 +65,7 @@ class VerificacionCodigoController extends GetxController {
         codigo.value,
       );
 
-      print(resultado); // Para debug
+      debugPrint('$resultado'); // Para debug
 
       if (resultado['verificado'] == true) {
         if (context.mounted) {

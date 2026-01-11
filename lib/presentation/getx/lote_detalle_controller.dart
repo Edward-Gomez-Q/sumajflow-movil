@@ -39,18 +39,18 @@ class LoteDetalleController extends GetxController {
   Future<void> cargarDetalleLote() async {
     isLoading.value = true;
     try {
-      print('🔄 Cargando detalle del lote - AsignacionId: $asignacionId');
+      debugPrint('🔄 Cargando detalle del lote - AsignacionId: $asignacionId');
 
       final detalle = await _lotesRepository.getDetalleLote(asignacionId);
 
       loteDetalle.value = detalle;
 
-      print('  Detalle del lote cargado exitosamente');
-      print('   Estado: ${detalle.estado}');
-      print('   Código: ${detalle.codigoLote}');
-      print('   Waypoints válidos: ${detalle.tieneRutaCompleta}');
+      debugPrint('  Detalle del lote cargado exitosamente');
+      debugPrint('   Estado: ${detalle.estado}');
+      debugPrint('   Código: ${detalle.codigoLote}');
+      debugPrint('   Waypoints válidos: ${detalle.tieneRutaCompleta}');
     } catch (e) {
-      print('❌ Error al cargar detalle del lote: $e');
+      debugPrint('❌ Error al cargar detalle del lote: $e');
       _notificationService.showError(
         'Error',
         'No se pudo cargar el detalle del lote: ${e.toString()}',
@@ -161,7 +161,7 @@ class LoteDetalleController extends GetxController {
       barrierDismissible: false,
       builder: (_) => const ConfirmarInicioViajeDialog(),
     );
-    print('📝 Confirmación de inicio de viaje: $confirmado');
+    debugPrint('📝 Confirmación de inicio de viaje: $confirmado');
 
     if (confirmado == true) {
       _irATrazabilidad();
@@ -171,7 +171,7 @@ class LoteDetalleController extends GetxController {
   /// Navega a la página de trazabilidad
   void _irATrazabilidad() {
     if (_navegarATrazabilidad == null) {
-      print('❌ Callback de navegación no configurado');
+      debugPrint('❌ Callback de navegación no configurado');
       _notificationService.showError(
         'Error',
         'No se pudo navegar. Intenta nuevamente.',

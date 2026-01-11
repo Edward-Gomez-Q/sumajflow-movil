@@ -47,7 +47,7 @@ class QrScannerPage extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.7),
+                color: Colors.black.withValues(alpha: 0.7),
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(24),
                 ),
@@ -120,7 +120,7 @@ class QrScannerPage extends StatelessWidget {
 
   Widget _buildScannerOverlay(ThemeData theme) {
     return Container(
-      decoration: BoxDecoration(color: Colors.black.withOpacity(0.5)),
+      decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.5)),
       child: Center(
         child: Container(
           width: 280,

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+
 import 'package:sumajflow_movil/config/routes/app_router.dart';
 import 'package:sumajflow_movil/core/services/auth_service.dart';
 import 'package:sumajflow_movil/core/services/location_service.dart';
@@ -9,48 +10,68 @@ import 'package:sumajflow_movil/core/services/websocket_service.dart';
 import 'package:sumajflow_movil/core/theme/app_theme.dart';
 import 'package:sumajflow_movil/presentation/getx/theme_controller.dart';
 
-void main() async {
+import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
+
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Suprimir warnings de flutter_map en producción
   if (kReleaseMode) {
     debugPrint = (String? message, {int? wrapWidth}) {
-      if (message?.contains('flutter_map') ?? false) {
-        return;
-      }
+      if (message?.contains('flutter_map') ?? false) return;
       debugPrintThrottled(message, wrapWidth: wrapWidth);
     };
   }
 
-  // Inicializar servicios esenciales primero
   try {
     debugPrint('🚀 Inicializando servicios...');
 
-    // Servicio de autenticación (debe ser el primero)
     await Get.putAsync(() => AuthService().init());
     debugPrint('  AuthService inicializado');
 
-    // Servicios de almacenamiento y ubicación
     await Get.putAsync(() => OfflineStorageService().init());
     debugPrint('  OfflineStorageService inicializado');
 
     await Get.putAsync(() => LocationService().init());
     debugPrint('  LocationService inicializado');
 
-    // WebSocket service (se conecta solo si hay autenticación)
     await Get.putAsync(() => WebSocketService().init());
     debugPrint('  WebSocketService inicializado');
 
-    // Inicializar ThemeController (OPCIONAL: moverlo aquí)
+    await _initFMTC();
+    debugPrint('✅ FMTC listo');
+
     Get.put(ThemeController());
     debugPrint('  ThemeController inicializado');
 
-    debugPrint('  Todos los servicios inicializados correctamente');
-  } catch (e) {
+    debugPrint('✅ Todos los servicios inicializados correctamente');
+  } catch (e, st) {
     debugPrint('❌ Error inicializando servicios: $e');
+    debugPrint('$st');
   }
 
   runApp(const MainApp());
+}
+
+Future<void> _initFMTC() async {
+  try {
+    await FMTCObjectBoxBackend().initialise();
+    debugPrint('  FMTC ObjectBox backend inicializado');
+
+    const storeName = 'sumajflowMapStore';
+    final storeDirectory = FMTCStore(storeName);
+
+    final exists = await storeDirectory.manage.ready;
+
+    if (!exists) {
+      await storeDirectory.manage.create();
+      debugPrint('  FMTC store creado: $storeName');
+    } else {
+      debugPrint('  FMTC store ya existe: $storeName');
+    }
+  } catch (e, st) {
+    debugPrint('❌ FMTC falló, se continúa SIN cache de tiles: $e');
+    debugPrint('$st');
+  }
 }
 
 class MainApp extends StatelessWidget {
@@ -58,7 +79,9 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Obtener ThemeController (ya fue inicializado en main)
+    if (!Get.isRegistered<ThemeController>()) {
+      Get.put(ThemeController());
+    }
     final themeController = ThemeController.to;
 
     return Obx(
@@ -79,7 +102,6 @@ class MainApp extends StatelessWidget {
             }
             return ErrorWidget(details.exception);
           };
-
           return child ?? const SizedBox.shrink();
         },
       ),

@@ -35,7 +35,7 @@ class _LoteDetallePageState extends State<LoteDetallePage> {
 
   @override
   void dispose() {
-    print('🗑️ Eliminando LoteDetalleController - Tag: $controllerTag');
+    debugPrint('🗑️ Eliminando LoteDetalleController - Tag: $controllerTag');
     Get.delete<LoteDetalleController>(tag: controllerTag);
     super.dispose();
   }
@@ -124,7 +124,7 @@ class _LoteDetallePageState extends State<LoteDetallePage> {
           Text(
             'Cargando información del viaje...',
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.6),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
         ],
@@ -145,10 +145,12 @@ class _LoteDetallePageState extends State<LoteDetallePage> {
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.colorScheme.outline.withOpacity(0.1)),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.1),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -165,7 +167,7 @@ class _LoteDetallePageState extends State<LoteDetallePage> {
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withOpacity(0.1),
+                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
@@ -188,7 +190,7 @@ class _LoteDetallePageState extends State<LoteDetallePage> {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: colorEstado.withOpacity(0.3),
+                      color: colorEstado.withValues(alpha: 0.3),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),
@@ -213,7 +215,7 @@ class _LoteDetallePageState extends State<LoteDetallePage> {
               Text(
                 'Progreso',
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.5),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -304,7 +306,7 @@ class _LoteDetallePageState extends State<LoteDetallePage> {
               color: theme.colorScheme.surface,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: theme.colorScheme.outline.withOpacity(0.1),
+                color: theme.colorScheme.outline.withValues(alpha: 0.1),
               ),
             ),
             child: Column(
@@ -316,7 +318,7 @@ class _LoteDetallePageState extends State<LoteDetallePage> {
                 ),
                 Divider(
                   height: 24,
-                  color: theme.colorScheme.outline.withOpacity(0.1),
+                  color: theme.colorScheme.outline.withValues(alpha: 0.1),
                 ),
                 _buildSimpleInfoRow(
                   theme,
@@ -325,7 +327,7 @@ class _LoteDetallePageState extends State<LoteDetallePage> {
                 ),
                 Divider(
                   height: 24,
-                  color: theme.colorScheme.outline.withOpacity(0.1),
+                  color: theme.colorScheme.outline.withValues(alpha: 0.1),
                 ),
                 _buildSimpleInfoRow(
                   theme,
@@ -334,7 +336,7 @@ class _LoteDetallePageState extends State<LoteDetallePage> {
                 ),
                 Divider(
                   height: 24,
-                  color: theme.colorScheme.outline.withOpacity(0.1),
+                  color: theme.colorScheme.outline.withValues(alpha: 0.1),
                 ),
                 _buildSimpleInfoRow(
                   theme,
@@ -356,10 +358,12 @@ class _LoteDetallePageState extends State<LoteDetallePage> {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+                    color: theme.colorScheme.primaryContainer.withValues(
+                      alpha: 0.3,
+                    ),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: theme.colorScheme.primary.withOpacity(0.2),
+                      color: theme.colorScheme.primary.withValues(alpha: 0.2),
                     ),
                   ),
                   child: Text(
@@ -391,7 +395,7 @@ class _LoteDetallePageState extends State<LoteDetallePage> {
         Text(
           label,
           style: theme.textTheme.bodyMedium?.copyWith(
-            color: theme.colorScheme.onSurface.withOpacity(0.6),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -463,7 +467,7 @@ class _LoteDetallePageState extends State<LoteDetallePage> {
                             boxShadow: isActive
                                 ? [
                                     BoxShadow(
-                                      color: color.withOpacity(0.3),
+                                      color: color.withValues(alpha: 0.3),
                                       blurRadius: 8,
                                       offset: const Offset(0, 2),
                                     ),
@@ -476,8 +480,8 @@ class _LoteDetallePageState extends State<LoteDetallePage> {
                               style: TextStyle(
                                 color: isActive
                                     ? Colors.white
-                                    : theme.colorScheme.onSurface.withOpacity(
-                                        0.4,
+                                    : theme.colorScheme.onSurface.withValues(
+                                        alpha: 0.4,
                                       ),
                                 fontWeight: FontWeight.w600,
                                 fontSize: 14,
@@ -491,7 +495,7 @@ class _LoteDetallePageState extends State<LoteDetallePage> {
                             width: 2,
                             height: 44,
                             color: isActive
-                                ? color.withOpacity(0.4)
+                                ? color.withValues(alpha: 0.4)
                                 : theme.colorScheme.surfaceContainerHighest,
                           ),
                       ],
@@ -506,8 +510,10 @@ class _LoteDetallePageState extends State<LoteDetallePage> {
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                             color: isActive
-                                ? color.withOpacity(0.2)
-                                : theme.colorScheme.outline.withOpacity(0.1),
+                                ? color.withValues(alpha: 0.2)
+                                : theme.colorScheme.outline.withValues(
+                                    alpha: 0.1,
+                                  ),
                             width: isActive ? 1.5 : 1,
                           ),
                         ),
@@ -520,7 +526,7 @@ class _LoteDetallePageState extends State<LoteDetallePage> {
                                   padding: const EdgeInsets.all(6),
                                   decoration: BoxDecoration(
                                     color: isActive
-                                        ? color.withOpacity(0.1)
+                                        ? color.withValues(alpha: 0.1)
                                         : theme
                                               .colorScheme
                                               .surfaceContainerHighest,
@@ -540,7 +546,7 @@ class _LoteDetallePageState extends State<LoteDetallePage> {
                                       color: isActive
                                           ? theme.colorScheme.onSurface
                                           : theme.colorScheme.onSurface
-                                                .withOpacity(0.4),
+                                                .withValues(alpha: 0.4),
                                     ),
                                   ),
                                 ),
@@ -550,8 +556,8 @@ class _LoteDetallePageState extends State<LoteDetallePage> {
                             Text(
                               waypoint.nombre,
                               style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurface.withOpacity(
-                                  0.5,
+                                color: theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.5,
                                 ),
                               ),
                             ),
@@ -577,7 +583,9 @@ class _LoteDetallePageState extends State<LoteDetallePage> {
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: theme.colorScheme.outline.withOpacity(0.1)),
+          border: Border.all(
+            color: theme.colorScheme.outline.withValues(alpha: 0.1),
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -623,7 +631,9 @@ class _LoteDetallePageState extends State<LoteDetallePage> {
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: theme.colorScheme.outline.withOpacity(0.1)),
+          border: Border.all(
+            color: theme.colorScheme.outline.withValues(alpha: 0.1),
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -678,7 +688,7 @@ class _LoteDetallePageState extends State<LoteDetallePage> {
               Text(
                 label,
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.5),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                   fontSize: 11,
                 ),
               ),
@@ -707,7 +717,7 @@ class _LoteDetallePageState extends State<LoteDetallePage> {
         color: theme.colorScheme.surface,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, -2),
           ),
@@ -745,7 +755,7 @@ class _LoteDetallePageState extends State<LoteDetallePage> {
           Icon(
             Icons.error_outline_rounded,
             size: 64,
-            color: theme.colorScheme.error.withOpacity(0.7),
+            color: theme.colorScheme.error.withValues(alpha: 0.7),
           ),
           const SizedBox(height: 16),
           Text(
@@ -758,7 +768,7 @@ class _LoteDetallePageState extends State<LoteDetallePage> {
           Text(
             'Intenta nuevamente más tarde',
             style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.5),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
             ),
           ),
         ],

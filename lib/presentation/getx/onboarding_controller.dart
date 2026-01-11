@@ -158,9 +158,9 @@ class OnboardingController extends GetxController {
           duration: const Duration(seconds: 3),
           margin: const EdgeInsets.all(16),
         );
-        print('📢 Snackbar mostrado: $title - $message');
+        debugPrint('📢 Snackbar mostrado: $title - $message');
       } else {
-        print('⚠️ Get.context es null, no se puede mostrar snackbar');
+        debugPrint('⚠️ Get.context es null, no se puede mostrar snackbar');
       }
     });
   }
@@ -198,9 +198,9 @@ class OnboardingController extends GetxController {
       nombreInvitacion.value = nombre.trim();
       telefonoInvitacion.value = datos['numeroCelular'] ?? '';
 
-      print('  Datos cargados exitosamente');
+      debugPrint('  Datos cargados exitosamente');
     } catch (e) {
-      print('❌ Error al cargar datos de invitación: $e');
+      debugPrint('❌ Error al cargar datos de invitación: $e');
       _showSnackbar(
         'Error',
         'No se pudieron cargar los datos de la invitación',
@@ -248,12 +248,12 @@ class OnboardingController extends GetxController {
 
         fechaNacimientoController.text = formattedDate;
 
-        print('  Fecha seleccionada: $formattedDate');
+        debugPrint('  Fecha seleccionada: $formattedDate');
 
         validatePaso1();
       }
     } catch (e) {
-      print('❌ Error al seleccionar fecha: $e');
+      debugPrint('❌ Error al seleccionar fecha: $e');
       _showSnackbar(
         'Error',
         'No se pudo abrir el selector de fecha',
@@ -360,7 +360,7 @@ class OnboardingController extends GetxController {
         return status.isGranted || status.isLimited;
       }
     } catch (e) {
-      print('❌ Error al solicitar permisos: $e');
+      debugPrint('❌ Error al solicitar permisos: $e');
       _showSnackbar('Error', 'Error al verificar permisos: $e', Colors.red);
       return false;
     }
@@ -394,21 +394,21 @@ class OnboardingController extends GetxController {
       );
 
       if (source == null) {
-        print('⚠️ Usuario canceló la selección de fuente');
+        debugPrint('⚠️ Usuario canceló la selección de fuente');
         return;
       }
 
-      print(
+      debugPrint(
         '🔐 Solicitando permisos para ${source == ImageSource.camera ? 'cámara' : 'galería'}...',
       );
       final permisosConcedidos = await _solicitarPermisos(source, context);
 
       if (!permisosConcedidos) {
-        print('❌ Permisos no concedidos');
+        debugPrint('❌ Permisos no concedidos');
         return;
       }
 
-      print('  Permisos concedidos, abriendo picker...');
+      debugPrint('  Permisos concedidos, abriendo picker...');
 
       final XFile? image = await _picker.pickImage(
         source: source,
@@ -418,7 +418,7 @@ class OnboardingController extends GetxController {
       );
 
       if (image == null) {
-        print('⚠️ No se seleccionó ninguna imagen');
+        debugPrint('⚠️ No se seleccionó ninguna imagen');
         _showSnackbar(
           'Cancelado',
           'No se seleccionó ninguna imagen',
@@ -427,12 +427,12 @@ class OnboardingController extends GetxController {
         return;
       }
 
-      print('📷 Imagen capturada: ${image.path}');
+      debugPrint('📷 Imagen capturada: ${image.path}');
 
       final File imageFile = File(image.path);
 
       if (!await imageFile.exists()) {
-        print('❌ El archivo no existe en la ruta: ${image.path}');
+        debugPrint('❌ El archivo no existe en la ruta: ${image.path}');
         _showSnackbar(
           'Error',
           'No se pudo acceder a la imagen seleccionada',
@@ -441,7 +441,7 @@ class OnboardingController extends GetxController {
         return;
       }
 
-      print('  Archivo válido, tamaño: ${await imageFile.length()} bytes');
+      debugPrint('  Archivo válido, tamaño: ${await imageFile.length()} bytes');
 
       // Solo licencia
       if (tipo == 'licencia') {
@@ -453,8 +453,8 @@ class OnboardingController extends GetxController {
 
       await _uploadImageToMinio(imageFile, tipo);
     } catch (e, stackTrace) {
-      print('❌ Error al capturar imagen: $e');
-      print('Stack trace: $stackTrace');
+      debugPrint('❌ Error al capturar imagen: $e');
+      debugPrint('Stack trace: $stackTrace');
 
       _showSnackbar(
         'Error',
@@ -473,12 +473,12 @@ class OnboardingController extends GetxController {
   /// Sube una imagen a MinIO
   Future<void> _uploadImageToMinio(File file, String tipo) async {
     try {
-      print('📤 Subiendo imagen de $tipo...');
+      debugPrint('📤 Subiendo imagen de $tipo...');
 
       const String folder = 'documentos-transportistas';
       final objectName = await _repository.uploadFile(file, folder);
 
-      print('  Imagen subida exitosamente: $objectName');
+      debugPrint('  Imagen subida exitosamente: $objectName');
 
       if (tipo == 'licencia') {
         licenciaObjectName.value = objectName;
@@ -488,7 +488,7 @@ class OnboardingController extends GetxController {
       validatePaso4();
       _showSnackbar('Éxito', 'Documento subido correctamente', Colors.green);
     } catch (e) {
-      print('❌ Error al subir imagen: $e');
+      debugPrint('❌ Error al subir imagen: $e');
 
       if (tipo == 'licencia') {
         licenciaFoto.value = null;
@@ -600,8 +600,8 @@ class OnboardingController extends GetxController {
         transportista: transportistaData,
       );
 
-      print('  Onboarding completado, procesando respuesta...');
-      print('📥 Respuesta completa: $response');
+      debugPrint('  Onboarding completado, procesando respuesta...');
+      debugPrint('📥 Respuesta completa: $response');
 
       isLoading.value = false;
 
@@ -615,10 +615,10 @@ class OnboardingController extends GetxController {
           final transportistaId = data['transportistaId'] as int?;
           final correo = data['correo'] as String?;
 
-          print('🔍 Token extraído: $authToken');
-          print('🔍 Usuario ID: $usuarioId');
-          print('🔍 Transportista ID: $transportistaId');
-          print('🔍 Correo: $correo');
+          debugPrint('🔍 Token extraído: $authToken');
+          debugPrint('🔍 Usuario ID: $usuarioId');
+          debugPrint('🔍 Transportista ID: $transportistaId');
+          debugPrint('🔍 Correo: $correo');
 
           if (authToken != null &&
               usuarioId != null &&
@@ -632,7 +632,7 @@ class OnboardingController extends GetxController {
               correo: correo,
             );
 
-            print('  Datos guardados en AuthService');
+            debugPrint('  Datos guardados en AuthService');
 
             _showSnackbar(
               'Éxito',
@@ -642,7 +642,7 @@ class OnboardingController extends GetxController {
 
             return true;
           } else {
-            print('❌ Datos incompletos en data');
+            debugPrint('❌ Datos incompletos en data');
             _showSnackbar(
               'Error',
               'Datos incompletos en la respuesta del servidor',
@@ -651,19 +651,19 @@ class OnboardingController extends GetxController {
             return false;
           }
         } else {
-          print('❌ No se encontró el objeto data en la respuesta');
+          debugPrint('❌ No se encontró el objeto data en la respuesta');
           _showSnackbar('Error', 'Formato de respuesta incorrecto', Colors.red);
           return false;
         }
       } else {
-        print('❌ Respuesta nula o success=false');
+        debugPrint('❌ Respuesta nula o success=false');
         _showSnackbar('Error', 'No se pudo completar el registro', Colors.red);
         return false;
       }
     } catch (e, stackTrace) {
       isLoading.value = false;
-      print('❌ Error al procesar: $e');
-      print('Stack trace: $stackTrace');
+      debugPrint('❌ Error al procesar: $e');
+      debugPrint('Stack trace: $stackTrace');
       _showSnackbar('Error', 'Error al procesar: ${e.toString()}', Colors.red);
       return false;
     }

@@ -11,7 +11,6 @@ class PerfilPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final authService = AuthService.to;
     final themeController = ThemeController.to;
 
@@ -53,7 +52,7 @@ class PerfilPage extends StatelessWidget {
           children: [
             CircleAvatar(
               radius: 40,
-              backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+              backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
               child: Icon(
                 Icons.person,
                 size: 40,
@@ -75,7 +74,7 @@ class PerfilPage extends StatelessWidget {
                   Text(
                     'ID: ${authService.transportistaId ?? "N/A"}',
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                 ],

@@ -106,7 +106,7 @@ class _OnboardingState extends State<Onboarding> {
                   color: theme.colorScheme.surface,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 10,
                       offset: const Offset(0, -5),
                     ),
@@ -220,7 +220,7 @@ class _OnboardingState extends State<Onboarding> {
                 const SizedBox(height: 8),
                 InkWell(
                   onTap: () async {
-                    print('🔍 Abriendo DatePicker...');
+                    debugPrint('🔍 Abriendo DatePicker...');
 
                     final DateTime? picked = await showDatePicker(
                       context: context,
@@ -251,7 +251,7 @@ class _OnboardingState extends State<Onboarding> {
                     );
 
                     if (picked != null && mounted) {
-                      print('  Fecha seleccionada: $picked');
+                      debugPrint('  Fecha seleccionada: $picked');
                       controller.fechaNacimientoSeleccionada.value = picked;
 
                       final formattedDate =
@@ -271,7 +271,7 @@ class _OnboardingState extends State<Onboarding> {
                       color: theme.colorScheme.surface,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: theme.colorScheme.outline.withOpacity(0.2),
+                        color: theme.colorScheme.outline.withValues(alpha: 0.2),
                       ),
                     ),
                     child: Row(
@@ -305,7 +305,7 @@ class _OnboardingState extends State<Onboarding> {
                                           .value ==
                                       null
                                   ? theme.textTheme.bodySmall?.color
-                                        ?.withOpacity(0.5)
+                                        ?.withValues(alpha: 0.5)
                                   : theme.colorScheme.onSurface,
                             ),
                           ),
@@ -390,7 +390,9 @@ class _OnboardingState extends State<Onboarding> {
                   decoration: InputDecoration(
                     hintText: 'Mínimo 8 caracteres',
                     hintStyle: theme.textTheme.bodyLarge?.copyWith(
-                      color: theme.textTheme.bodySmall?.color?.withOpacity(0.5),
+                      color: theme.textTheme.bodySmall?.color?.withValues(
+                        alpha: 0.5,
+                      ),
                       fontWeight: FontWeight.normal,
                     ),
                     prefixIcon: Icon(
@@ -415,13 +417,13 @@ class _OnboardingState extends State<Onboarding> {
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide(
-                        color: theme.colorScheme.outline.withOpacity(0.2),
+                        color: theme.colorScheme.outline.withValues(alpha: 0.2),
                       ),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide(
-                        color: theme.colorScheme.outline.withOpacity(0.2),
+                        color: theme.colorScheme.outline.withValues(alpha: 0.2),
                       ),
                     ),
                     focusedBorder: OutlineInputBorder(
@@ -463,7 +465,9 @@ class _OnboardingState extends State<Onboarding> {
                   decoration: InputDecoration(
                     hintText: 'Repite tu contraseña',
                     hintStyle: theme.textTheme.bodyLarge?.copyWith(
-                      color: theme.textTheme.bodySmall?.color?.withOpacity(0.5),
+                      color: theme.textTheme.bodySmall?.color?.withValues(
+                        alpha: 0.5,
+                      ),
                       fontWeight: FontWeight.normal,
                     ),
                     prefixIcon: Icon(
@@ -510,13 +514,13 @@ class _OnboardingState extends State<Onboarding> {
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide(
-                        color: theme.colorScheme.outline.withOpacity(0.2),
+                        color: theme.colorScheme.outline.withValues(alpha: 0.2),
                       ),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide(
-                        color: theme.colorScheme.outline.withOpacity(0.2),
+                        color: theme.colorScheme.outline.withValues(alpha: 0.2),
                       ),
                     ),
                     focusedBorder: OutlineInputBorder(
@@ -678,13 +682,13 @@ class _OnboardingState extends State<Onboarding> {
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide(
-                        color: theme.colorScheme.outline.withOpacity(0.2),
+                        color: theme.colorScheme.outline.withValues(alpha: 0.2),
                       ),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide(
-                        color: theme.colorScheme.outline.withOpacity(0.2),
+                        color: theme.colorScheme.outline.withValues(alpha: 0.2),
                       ),
                     ),
                     focusedBorder: OutlineInputBorder(
@@ -772,7 +776,7 @@ class _OnboardingState extends State<Onboarding> {
                       color: theme.colorScheme.surface,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: theme.colorScheme.outline.withOpacity(0.2),
+                        color: theme.colorScheme.outline.withValues(alpha: 0.2),
                       ),
                     ),
                     child: Row(
@@ -800,7 +804,7 @@ class _OnboardingState extends State<Onboarding> {
                                   controller.fechaVencimientoLicencia.value ==
                                       null
                                   ? theme.textTheme.bodySmall?.color
-                                        ?.withOpacity(0.5)
+                                        ?.withValues(alpha: 0.5)
                                   : theme.colorScheme.onSurface,
                             ),
                           ),
@@ -956,7 +960,7 @@ class _OnboardingState extends State<Onboarding> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: theme.colorScheme.primary.withOpacity(0.1),
+            color: theme.colorScheme.primary.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(icon, color: theme.colorScheme.primary, size: 28),
@@ -1007,10 +1011,10 @@ class _OnboardingState extends State<Onboarding> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+            color: theme.colorScheme.surfaceVariant.withValues(alpha: 0.3),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: theme.colorScheme.outline.withOpacity(0.2),
+              color: theme.colorScheme.outline.withValues(alpha: 0.2),
             ),
           ),
           child: Row(
@@ -1090,7 +1094,7 @@ class _OnboardingState extends State<Onboarding> {
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: theme.textTheme.bodyLarge?.copyWith(
-              color: theme.textTheme.bodySmall?.color?.withOpacity(0.5),
+              color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.5),
               fontWeight: FontWeight.normal,
             ),
             prefixIcon: Icon(icon, color: theme.colorScheme.primary),
@@ -1104,13 +1108,13 @@ class _OnboardingState extends State<Onboarding> {
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: theme.colorScheme.outline.withOpacity(0.2),
+                color: theme.colorScheme.outline.withValues(alpha: 0.2),
               ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: theme.colorScheme.outline.withOpacity(0.2),
+                color: theme.colorScheme.outline.withValues(alpha: 0.2),
               ),
             ),
             focusedBorder: OutlineInputBorder(
@@ -1157,13 +1161,13 @@ class _OnboardingState extends State<Onboarding> {
             border: Border.all(
               color: hasFile
                   ? theme.colorScheme.primary
-                  : theme.colorScheme.outline.withOpacity(0.2),
+                  : theme.colorScheme.outline.withValues(alpha: 0.2),
               width: hasFile ? 2 : 1,
             ),
             boxShadow: hasFile
                 ? [
                     BoxShadow(
-                      color: theme.colorScheme.primary.withOpacity(0.1),
+                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -1179,8 +1183,10 @@ class _OnboardingState extends State<Onboarding> {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: hasFile
-                        ? theme.colorScheme.primary.withOpacity(0.15)
-                        : theme.colorScheme.surfaceVariant.withOpacity(0.5),
+                        ? theme.colorScheme.primary.withValues(alpha: 0.15)
+                        : theme.colorScheme.surfaceVariant.withValues(
+                            alpha: 0.5,
+                          ),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
@@ -1259,10 +1265,12 @@ class _OnboardingState extends State<Onboarding> {
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.colorScheme.outline.withOpacity(0.2)),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.2),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -1276,7 +1284,7 @@ class _OnboardingState extends State<Onboarding> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withOpacity(0.1),
+                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(icon, color: theme.colorScheme.primary, size: 20),
@@ -1333,9 +1341,11 @@ class _OnboardingState extends State<Onboarding> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.colorScheme.primary.withOpacity(0.08),
+        color: theme.colorScheme.primary.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.colorScheme.primary.withOpacity(0.2)),
+        border: Border.all(
+          color: theme.colorScheme.primary.withValues(alpha: 0.2),
+        ),
       ),
       child: Row(
         children: [
@@ -1387,7 +1397,7 @@ class _OnboardingState extends State<Onboarding> {
                       final success = await controller.submitOnboarding();
                       if (!context.mounted) return;
                       if (success) {
-                        print('Onboarding completado con éxito.');
+                        debugPrint('Onboarding completado con éxito.');
                         context.push(RouteNames.success);
                       }
                     } else {

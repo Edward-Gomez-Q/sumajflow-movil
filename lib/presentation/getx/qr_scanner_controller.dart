@@ -22,7 +22,7 @@ class QrScannerController extends GetxController {
   /// Procesar QR escaneado
   void procesarQR(String qrData, BuildContext context) async {
     //Mostrar el qrData en consola
-    print('QR Data: $qrData');
+    debugPrint('QR Data: $qrData');
     if (isProcessing.value) return;
 
     try {
