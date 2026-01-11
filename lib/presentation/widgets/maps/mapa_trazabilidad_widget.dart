@@ -304,7 +304,7 @@ class _MapaTrazabilidadWidgetState extends State<MapaTrazabilidadWidget> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.7),
+                color: Colors.black.withValues(alpha: 0.7),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
@@ -343,7 +343,7 @@ class _MapaTrazabilidadWidgetState extends State<MapaTrazabilidadWidget> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.95),
+                color: Colors.orange.withValues(alpha: 0.95),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Row(
@@ -398,7 +398,7 @@ class _MapaTrazabilidadWidgetState extends State<MapaTrazabilidadWidget> {
           height: 50,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: theme.colorScheme.primary.withOpacity(0.2),
+            color: theme.colorScheme.primary.withValues(alpha: 0.2),
           ),
         ),
         // Indicador de dirección
@@ -410,7 +410,7 @@ class _MapaTrazabilidadWidgetState extends State<MapaTrazabilidadWidget> {
             size: 32,
             shadows: [
               Shadow(
-                color: Colors.black.withOpacity(0.3),
+                color: Colors.black.withValues(alpha: 0.3),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
@@ -440,7 +440,7 @@ class _MapaTrazabilidadWidgetState extends State<MapaTrazabilidadWidget> {
             BoxShadow(
               color: _hexToColor(
                 widget.proximoWaypoint!.color,
-              ).withOpacity(0.4),
+              ).withValues(alpha: 0.4),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -466,13 +466,13 @@ class _MapaTrazabilidadWidgetState extends State<MapaTrazabilidadWidget> {
             Icon(
               Icons.location_searching_rounded,
               size: 48,
-              color: theme.colorScheme.onSurface.withOpacity(0.3),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
             ),
             const SizedBox(height: 16),
             Text(
               message,
               style: TextStyle(
-                color: theme.colorScheme.onSurface.withOpacity(0.5),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
               ),

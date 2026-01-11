@@ -29,7 +29,7 @@ class ConfirmarSalidaTrackingDialog extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.2),
+                color: Colors.black.withValues(alpha: 0.2),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -53,12 +53,15 @@ class ConfirmarSalidaTrackingDialog extends StatelessWidget {
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: [Colors.orange, Colors.orange.withOpacity(0.7)],
+                      colors: [
+                        Colors.orange,
+                        Colors.orange.withValues(alpha: 0.7),
+                      ],
                     ),
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.orange.withOpacity(0.3),
+                        color: Colors.orange.withValues(alpha: 0.3),
                         blurRadius: 20,
                         offset: const Offset(0, 8),
                       ),
@@ -90,7 +93,7 @@ class ConfirmarSalidaTrackingDialog extends StatelessWidget {
               Text(
                 'El seguimiento de tu ubicación se pausará temporalmente',
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.7),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                   height: 1.4,
                 ),
                 textAlign: TextAlign.center,
@@ -102,9 +105,11 @@ class ConfirmarSalidaTrackingDialog extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
+                  color: Colors.orange.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.orange.withOpacity(0.2)),
+                  border: Border.all(
+                    color: Colors.orange.withValues(alpha: 0.2),
+                  ),
                 ),
                 child: Row(
                   children: [
@@ -118,7 +123,9 @@ class ConfirmarSalidaTrackingDialog extends StatelessWidget {
                       child: Text(
                         'Podrás reanudar el viaje desde la misma pantalla cuando regreses',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.8),
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.8,
+                          ),
                           height: 1.4,
                         ),
                       ),
@@ -139,7 +146,9 @@ class ConfirmarSalidaTrackingDialog extends StatelessWidget {
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         side: BorderSide(
-                          color: theme.colorScheme.outline.withOpacity(0.5),
+                          color: theme.colorScheme.outline.withValues(
+                            alpha: 0.5,
+                          ),
                         ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -150,7 +159,9 @@ class ConfirmarSalidaTrackingDialog extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
-                          color: theme.colorScheme.onSurface.withOpacity(0.7),
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.7,
+                          ),
                         ),
                       ),
                     ),

@@ -64,20 +64,20 @@ class _NotificacionesPageState extends State<NotificacionesPage> {
           Icon(
             Icons.notifications_none,
             size: 80,
-            color: theme.colorScheme.onSurface.withOpacity(0.3),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
           ),
           const SizedBox(height: 16),
           Text(
             'No hay notificaciones',
             style: theme.textTheme.titleLarge?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.6),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Te avisaremos cuando haya actualizaciones',
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.4),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
             ),
             textAlign: TextAlign.center,
           ),
@@ -196,7 +196,9 @@ class _NotificationItem extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            color: isRead ? null : theme.colorScheme.primary.withOpacity(0.05),
+            color: isRead
+                ? null
+                : theme.colorScheme.primary.withValues(alpha: 0.05),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -204,7 +206,7 @@ class _NotificationItem extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: iconColor.withOpacity(0.1),
+                  color: iconColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(_getIconForType(type), color: iconColor, size: 24),
@@ -228,14 +230,18 @@ class _NotificationItem extends StatelessWidget {
                     Text(
                       message,
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurface.withOpacity(0.8),
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.8,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       _formatTimestamp(timestamp),
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withOpacity(0.5),
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.5,
+                        ),
                       ),
                     ),
                   ],

@@ -31,10 +31,15 @@ class TrazabilidadPage extends StatelessWidget {
 
     final theme = Theme.of(context);
 
-    return WillPopScope(
-      //   Interceptar el botón back del sistema
-      onWillPop: () async {
-        return await _confirmarSalida(context, controller);
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+
+        final confirmar = await _confirmarSalida(context, controller);
+        if (confirmar && context.mounted) {
+          Navigator.of(context).pop();
+        }
       },
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
@@ -61,8 +66,8 @@ class TrazabilidadPage extends StatelessWidget {
                 ),
                 decoration: BoxDecoration(
                   color: controller.isOnline.value
-                      ? Colors.green.withOpacity(0.2)
-                      : Colors.orange.withOpacity(0.2),
+                      ? Colors.green.withValues(alpha: 0.2)
+                      : Colors.orange.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -178,12 +183,12 @@ class TrazabilidadPage extends StatelessWidget {
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [Colors.orange, Colors.orange.withOpacity(0.7)],
+                  colors: [Colors.orange, Colors.orange.withValues(alpha: 0.7)],
                 ),
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.orange.withOpacity(0.3),
+                    color: Colors.orange.withValues(alpha: 0.3),
                     blurRadius: 30,
                     offset: const Offset(0, 10),
                   ),
@@ -206,7 +211,7 @@ class TrazabilidadPage extends StatelessWidget {
             Text(
               'El seguimiento de tu ubicación está detenido temporalmente',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
               textAlign: TextAlign.center,
             ),
@@ -258,7 +263,7 @@ class TrazabilidadPage extends StatelessWidget {
           Text(
             'Verificando ubicación y estado',
             style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.6),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
         ],
@@ -276,7 +281,7 @@ class TrazabilidadPage extends StatelessWidget {
             Icon(
               Icons.error_outline_rounded,
               size: 64,
-              color: theme.colorScheme.error.withOpacity(0.7),
+              color: theme.colorScheme.error.withValues(alpha: 0.7),
             ),
             const SizedBox(height: 16),
             Text(
@@ -290,7 +295,7 @@ class TrazabilidadPage extends StatelessWidget {
             Text(
               controller.errorMessage.value,
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
               textAlign: TextAlign.center,
             ),
@@ -341,7 +346,7 @@ class TrazabilidadPage extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 20,
             offset: const Offset(0, -4),
           ),
@@ -359,7 +364,7 @@ class TrazabilidadPage extends StatelessWidget {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.outline.withOpacity(0.3),
+                  color: theme.colorScheme.outline.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -375,10 +380,12 @@ class TrazabilidadPage extends StatelessWidget {
                 return Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+                    color: theme.colorScheme.primaryContainer.withValues(
+                      alpha: 0.3,
+                    ),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: theme.colorScheme.primary.withOpacity(0.2),
+                      color: theme.colorScheme.primary.withValues(alpha: 0.2),
                     ),
                   ),
                   child: Row(
@@ -402,8 +409,8 @@ class TrazabilidadPage extends StatelessWidget {
                             Text(
                               'Próximo destino',
                               style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurface.withOpacity(
-                                  0.6,
+                                color: theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.6,
                                 ),
                               ),
                             ),
@@ -500,7 +507,7 @@ class TrazabilidadPage extends StatelessWidget {
                 Text(
                   label,
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     fontSize: 10,
                   ),
                 ),

@@ -208,7 +208,7 @@ class _MapFourWaypointsState extends State<MapFourWaypoints> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -272,7 +272,7 @@ class _MapFourWaypointsState extends State<MapFourWaypoints> {
                               BoxShadow(
                                 color: _hexToColor(
                                   waypoint.color,
-                                ).withOpacity(0.4),
+                                ).withValues(alpha: 0.4),
                                 blurRadius: 8,
                                 offset: const Offset(0, 2),
                               ),
@@ -300,7 +300,7 @@ class _MapFourWaypointsState extends State<MapFourWaypoints> {
           if (_isLoading)
             Container(
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.2),
+                color: Colors.black.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Center(
@@ -311,7 +311,7 @@ class _MapFourWaypointsState extends State<MapFourWaypoints> {
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Colors.black.withValues(alpha: 0.1),
                         blurRadius: 8,
                       ),
                     ],
@@ -355,11 +355,11 @@ class _MapFourWaypointsState extends State<MapFourWaypoints> {
                   vertical: 10,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.95),
+                  color: Colors.orange.withValues(alpha: 0.95),
                   borderRadius: BorderRadius.circular(10),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withValues(alpha: 0.1),
                       blurRadius: 6,
                     ),
                   ],
@@ -398,7 +398,9 @@ class _MapFourWaypointsState extends State<MapFourWaypoints> {
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.colorScheme.outline.withOpacity(0.2)),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.2),
+        ),
       ),
       child: Center(
         child: Column(
@@ -407,13 +409,13 @@ class _MapFourWaypointsState extends State<MapFourWaypoints> {
             Icon(
               Icons.location_off_rounded,
               size: 48,
-              color: theme.colorScheme.onSurface.withOpacity(0.3),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
             ),
             const SizedBox(height: 12),
             Text(
               'Mapa no disponible',
               style: TextStyle(
-                color: theme.colorScheme.onSurface.withOpacity(0.5),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
               ),

@@ -18,7 +18,7 @@ class StepIndicator extends StatelessWidget {
     return Row(
       children: List.generate(
         totalSteps,
-            (index) => Expanded(
+        (index) => Expanded(
           child: Row(
             children: [
               Expanded(
@@ -30,10 +30,7 @@ class StepIndicator extends StatelessWidget {
                 ),
               ),
               if (index < totalSteps - 1)
-                _buildConnector(
-                  theme: theme,
-                  isCompleted: index < currentStep,
-                ),
+                _buildConnector(theme: theme, isCompleted: index < currentStep),
             ],
           ),
         ),
@@ -68,7 +65,7 @@ class StepIndicator extends StatelessWidget {
       );
     } else {
       bgColor = theme.colorScheme.surface;
-      textColor = theme.colorScheme.onSurface.withOpacity(0.4);
+      textColor = theme.colorScheme.onSurface.withValues(alpha: 0.4);
       icon = Text(
         '$stepNumber',
         style: TextStyle(
@@ -88,7 +85,7 @@ class StepIndicator extends StatelessWidget {
         border: Border.all(
           color: isActive || isCompleted
               ? theme.colorScheme.primary
-              : theme.colorScheme.onSurface.withOpacity(0.2),
+              : theme.colorScheme.onSurface.withValues(alpha: 0.2),
           width: 2,
         ),
       ),
@@ -106,7 +103,7 @@ class StepIndicator extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 4),
         color: isCompleted
             ? theme.colorScheme.primary
-            : theme.colorScheme.onSurface.withOpacity(0.2),
+            : theme.colorScheme.onSurface.withValues(alpha: 0.2),
       ),
     );
   }

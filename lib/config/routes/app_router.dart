@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sumajflow_movil/core/services/auth_service.dart';
-import 'package:sumajflow_movil/data/models/lote_models.dart';
 import 'package:sumajflow_movil/presentation/pages/dashboard/dashboard.dart';
 import 'package:sumajflow_movil/presentation/pages/login/login.dart';
 import 'package:sumajflow_movil/presentation/pages/lotes/lote_detalle_page.dart';

@@ -75,7 +75,9 @@ class VerificacionCodigo extends StatelessWidget {
                   inactiveFillColor: theme.colorScheme.surface,
                   selectedFillColor: theme.colorScheme.surface,
                   activeColor: theme.colorScheme.primary,
-                  inactiveColor: theme.colorScheme.onSurface.withOpacity(0.2),
+                  inactiveColor: theme.colorScheme.onSurface.withValues(
+                    alpha: 0.2,
+                  ),
                   selectedColor: theme.colorScheme.primary,
                 ),
                 enableActiveFill: true,
@@ -94,7 +96,7 @@ class VerificacionCodigo extends StatelessWidget {
                     ? Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.error.withOpacity(0.1),
+                          color: theme.colorScheme.error.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(
@@ -126,7 +128,7 @@ class VerificacionCodigo extends StatelessWidget {
                     ? Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.error.withOpacity(0.1),
+                          color: theme.colorScheme.error.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
@@ -197,9 +199,11 @@ class VerificacionCodigo extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.colorScheme.primary.withOpacity(0.1),
+        color: theme.colorScheme.primary.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.colorScheme.primary.withOpacity(0.3)),
+        border: Border.all(
+          color: theme.colorScheme.primary.withValues(alpha: 0.3),
+        ),
       ),
       child: Column(
         children: [

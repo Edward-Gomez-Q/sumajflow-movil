@@ -46,7 +46,10 @@ class LoteCard extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: estadoColor.withOpacity(0.3), width: 2),
+            border: Border.all(
+              color: estadoColor.withValues(alpha: 0.3),
+              width: 2,
+            ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -69,9 +72,11 @@ class LoteCard extends StatelessWidget {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: estadoColor.withOpacity(0.1),
+                      color: estadoColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: estadoColor.withOpacity(0.3)),
+                      border: Border.all(
+                        color: estadoColor.withValues(alpha: 0.3),
+                      ),
                     ),
                     child: Text(
                       estado,
@@ -91,13 +96,13 @@ class LoteCard extends StatelessWidget {
                   Icon(
                     Icons.location_on_outlined,
                     size: 16,
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                   const SizedBox(width: 4),
                   Text(
                     'Destino: ',
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                   Expanded(
@@ -113,13 +118,13 @@ class LoteCard extends StatelessWidget {
                   Icon(
                     Icons.access_time,
                     size: 16,
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                   const SizedBox(width: 4),
                   Text(
                     'Creado: ',
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                   Text(fecha, style: theme.textTheme.bodySmall),
