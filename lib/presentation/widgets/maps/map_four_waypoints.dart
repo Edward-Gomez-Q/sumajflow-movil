@@ -260,7 +260,6 @@ class _MapFourWaypointsState extends State<MapFourWaypoints> {
                           shape: BoxShape.circle,
                           border: Border.all(color: Colors.white, width: 2.5),
                         ),
-<<<<<<< HEAD
                         child: Center(
                           child: Text(
                             waypoint.orden.toString(),
@@ -268,36 +267,6 @@ class _MapFourWaypointsState extends State<MapFourWaypoints> {
                               color: Colors.white,
                               fontWeight: FontWeight.w700,
                               fontSize: 15,
-=======
-                        curve: Curves.elasticOut,
-                        tween: Tween(begin: 0, end: 1),
-                        builder: (context, value, child) {
-                          return Transform.scale(scale: value, child: child);
-                        },
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: _hexToColor(waypoint.color),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2.5),
-                            boxShadow: [
-                              BoxShadow(
-                                color: _hexToColor(
-                                  waypoint.color,
-                                ).withValues(alpha: 0.4),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Center(
-                            child: Text(
-                              waypoint.orden.toString(),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 15,
-                              ),
->>>>>>> e23df83005f621345327f02044135cadd8889e29
                             ),
                           ),
                         ),
@@ -321,15 +290,6 @@ class _MapFourWaypointsState extends State<MapFourWaypoints> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
-<<<<<<< HEAD
-=======
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 8,
-                      ),
-                    ],
->>>>>>> e23df83005f621345327f02044135cadd8889e29
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -358,52 +318,6 @@ class _MapFourWaypointsState extends State<MapFourWaypoints> {
                 ),
               ),
             ),
-<<<<<<< HEAD
-=======
-
-          if (_routeError && !_isLoading)
-            Positioned(
-              top: 12,
-              left: 12,
-              right: 12,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withValues(alpha: 0.95),
-                  borderRadius: BorderRadius.circular(10),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
-                      blurRadius: 6,
-                    ),
-                  ],
-                ),
-                child: const Row(
-                  children: [
-                    Icon(
-                      Icons.info_outline_rounded,
-                      color: Colors.white,
-                      size: 18,
-                    ),
-                    SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        'Ruta aproximada en línea recta',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
->>>>>>> e23df83005f621345327f02044135cadd8889e29
         ],
       ),
     );
@@ -416,12 +330,6 @@ class _MapFourWaypointsState extends State<MapFourWaypoints> {
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
-<<<<<<< HEAD
-=======
-        border: Border.all(
-          color: theme.colorScheme.outline.withValues(alpha: 0.2),
-        ),
->>>>>>> e23df83005f621345327f02044135cadd8889e29
       ),
       child: Center(
         child: Column(

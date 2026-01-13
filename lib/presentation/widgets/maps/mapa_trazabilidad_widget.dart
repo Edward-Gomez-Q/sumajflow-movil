@@ -1,6 +1,7 @@
+// lib/presentation/widgets/maps/mapa_trazabilidad_widget.dart
+
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -9,6 +10,7 @@ import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
+import 'package:sumajflow_movil/core/config/tracking_config.dart';
 import 'package:sumajflow_movil/data/models/lote_models.dart';
 
 class MapaTrazabilidadWidget extends StatefulWidget {
@@ -33,22 +35,18 @@ class _MapaTrazabilidadWidgetState extends State<MapaTrazabilidadWidget> {
   List<LatLng> _routePoints = [];
   bool _isLoadingRoute = false;
   bool _routeError = false;
-  bool _isInitialLoad = true;
   http.Client? _httpClient;
   late final TileProvider _tileProvider;
 
-  Timer? _routeDebounce;
-  Timer? _periodicRouteUpdate;
+  Timer? _routeUpdateTimer;
   DateTime? _lastRouteFetchAt;
   String? _lastRouteKey;
-
-  static const double _routeRecalcDistanceMeters = 150;
-  static const Duration _minTimeBetweenRouteFetch = Duration(seconds: 20);
-  static const Duration _routeDebounceDuration = Duration(seconds: 1);
-  static const Duration _periodicUpdateInterval = Duration(seconds: 10);
+  Position? _lastRoutePosition;
 
   LatLng? _lastCentered;
   DateTime? _lastCenterAt;
+  bool _userInteractedWithMap = false;
+  Timer? _resetInteractionTimer;
 
   @override
   void initState() {
@@ -60,28 +58,14 @@ class _MapaTrazabilidadWidgetState extends State<MapaTrazabilidadWidget> {
       loadingStrategy: BrowseLoadingStrategy.cacheFirst,
     );
 
-    _scheduleFetchRoute(reason: 'init');
-    _startPeriodicRouteUpdate();
-  }
+    // Fetch inicial de ruta
+    _fetchRouteIfNeeded(force: true);
 
-  void _startPeriodicRouteUpdate() {
-    _periodicRouteUpdate?.cancel();
-    _periodicRouteUpdate = Timer.periodic(_periodicUpdateInterval, (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
-
-      // Solo actualizar si hay posición y waypoint
-      if (widget.currentPosition != null &&
-          widget.proximoWaypoint != null &&
-          widget.proximoWaypoint!.tieneCoordenadas) {
-        debugPrint(
-          '🔄 Actualización periódica de ruta (cada ${_periodicUpdateInterval.inSeconds}s)',
-        );
-        _fetchRoute(force: false, reason: 'periodic', showLoading: false);
-      }
-    });
+    // Timer periódico para actualizar ruta
+    _routeUpdateTimer = Timer.periodic(
+      Duration(seconds: TrackingConfig.routeUpdateInterval),
+      (_) => _fetchRouteIfNeeded(),
+    );
   }
 
   @override
@@ -89,21 +73,16 @@ class _MapaTrazabilidadWidgetState extends State<MapaTrazabilidadWidget> {
     super.didUpdateWidget(oldWidget);
 
     final waypointChanged = oldWidget.proximoWaypoint != widget.proximoWaypoint;
-
-    final movedEnough = _hasPositionChangedSignificantly(
+    final positionChanged = _hasPositionChangedSignificantly(
       oldWidget.currentPosition,
       widget.currentPosition,
-      meters: _routeRecalcDistanceMeters,
     );
 
     if (waypointChanged) {
-      _scheduleFetchRoute(
-        reason: 'waypointChanged',
-        force: true,
-        showLoading: false,
-      );
-    } else if (movedEnough) {
-      _scheduleFetchRoute(reason: 'movedEnough', showLoading: false);
+      debugPrint('🎯 Waypoint cambió, recalculando ruta');
+      _fetchRouteIfNeeded(force: true);
+    } else if (positionChanged) {
+      _fetchRouteIfNeeded();
     }
 
     _maybeCenterOnCurrentPosition();
@@ -111,49 +90,32 @@ class _MapaTrazabilidadWidgetState extends State<MapaTrazabilidadWidget> {
 
   @override
   void dispose() {
-    _routeDebounce?.cancel();
-    _periodicRouteUpdate?.cancel();
+    _routeUpdateTimer?.cancel();
+    _resetInteractionTimer?.cancel();
     _httpClient?.close();
     _httpClient = null;
     super.dispose();
   }
 
-  bool _hasPositionChangedSignificantly(
-    Position? old,
-    Position? current, {
-    required double meters,
-  }) {
-    if (old == null || current == null) return true;
+  bool _hasPositionChangedSignificantly(Position? old, Position? current) {
+    if (old == null || current == null) return false;
+    if (_lastRoutePosition == null) return true;
 
     final distance = Geolocator.distanceBetween(
-      old.latitude,
-      old.longitude,
+      _lastRoutePosition!.latitude,
+      _lastRoutePosition!.longitude,
       current.latitude,
       current.longitude,
     );
 
-    return distance > meters;
+    return distance > TrackingConfig.routeRecalcDistanceMeters;
   }
 
-  void _scheduleFetchRoute({
-    required String reason,
-    bool force = false,
-    bool showLoading = true,
-  }) {
-    if (!mounted) return;
-
-    _routeDebounce?.cancel();
-    _routeDebounce = Timer(_routeDebounceDuration, () {
-      if (!mounted) return;
-      _fetchRoute(force: force, reason: reason, showLoading: showLoading);
-    });
-  }
-
-  bool _canFetchByTime({required bool force}) {
-    if (force) return true;
+  bool _canFetchByTime() {
     final last = _lastRouteFetchAt;
     if (last == null) return true;
-    return DateTime.now().difference(last) >= _minTimeBetweenRouteFetch;
+    return DateTime.now().difference(last) >=
+        TrackingConfig.minTimeBetweenRouteFetch;
   }
 
   String _routeKey({
@@ -162,97 +124,61 @@ class _MapaTrazabilidadWidgetState extends State<MapaTrazabilidadWidget> {
     required double eLat,
     required double eLng,
   }) {
-    String r(double v) => v.toStringAsFixed(4);
+    String r(double v) => v.toStringAsFixed(3);
     return '${r(sLat)},${r(sLng)}|${r(eLat)},${r(eLng)}';
   }
 
-  Future<http.Response> _getWithRetry(Uri url) async {
-    const attempts = 3;
-
-    for (int i = 0; i < attempts; i++) {
-      try {
-        final client = _httpClient;
-        if (client == null) throw const SocketException('HTTP client is null');
-
-        final res = await client.get(url).timeout(const Duration(seconds: 10));
-        return res;
-      } on TimeoutException {
-        if (i == attempts - 1) rethrow;
-      } on SocketException {
-        if (i == attempts - 1) rethrow;
-      } on HttpException {
-        if (i == attempts - 1) rethrow;
-      } on http.ClientException {
-        if (i == attempts - 1) rethrow;
-      } catch (_) {
-        if (i == attempts - 1) rethrow;
-      }
-
-      await Future.delayed(Duration(milliseconds: 300 * (1 << i)));
-    }
-
-    throw Exception('Retries agotados');
-  }
-
-  Future<void> _fetchRoute({
-    required bool force,
-    required String reason,
-    bool showLoading = true,
-  }) async {
+  Future<void> _fetchRouteIfNeeded({bool force = false}) async {
     if (!mounted) return;
 
     final pos = widget.currentPosition;
     final wp = widget.proximoWaypoint;
 
     if (pos == null || wp == null || !wp.tieneCoordenadas) {
-      if (!mounted) return;
-      setState(() {
-        _routePoints = [];
-        _isLoadingRoute = false;
-        _routeError = false;
-        _isInitialLoad = false;
-      });
+      if (_routePoints.isNotEmpty) {
+        setState(() {
+          _routePoints = [];
+          _isLoadingRoute = false;
+          _routeError = false;
+        });
+      }
       return;
     }
 
-    final startLat = pos.latitude;
-    final startLng = pos.longitude;
-    final endLat = wp.latitud!;
-    final endLng = wp.longitud!;
-
-    if (!_canFetchByTime(force: force)) {
+    if (!force && !_canFetchByTime()) {
       return;
     }
 
     final key = _routeKey(
-      sLat: startLat,
-      sLng: startLng,
-      eLat: endLat,
-      eLng: endLng,
+      sLat: pos.latitude,
+      sLng: pos.longitude,
+      eLat: wp.latitud!,
+      eLng: wp.longitud!,
     );
+
     if (!force && _lastRouteKey == key && _routePoints.isNotEmpty) {
       return;
     }
 
     _lastRouteKey = key;
     _lastRouteFetchAt = DateTime.now();
+    _lastRoutePosition = pos;
 
-    // 👇 MODIFICADO: Solo mostrar loading si es la carga inicial o se solicita explícitamente
-    if (showLoading && _isInitialLoad) {
-      setState(() {
-        _isLoadingRoute = true;
-        _routeError = false;
-      });
-    }
+    if (_isLoadingRoute) return;
+
+    setState(() => _isLoadingRoute = true);
 
     try {
-      final coordinates = '$startLng,$startLat;$endLng,$endLat';
+      final coordinates =
+          '${pos.longitude},${pos.latitude};${wp.longitud},${wp.latitud}';
 
       final url = Uri.parse(
         'https://router.project-osrm.org/route/v1/driving/$coordinates?overview=full&geometries=polyline',
       );
 
-      final response = await _getWithRetry(url);
+      final response = await _httpClient!
+          .get(url)
+          .timeout(TrackingConfig.routeFetchTimeout);
 
       if (!mounted) return;
 
@@ -264,22 +190,23 @@ class _MapaTrazabilidadWidgetState extends State<MapaTrazabilidadWidget> {
             data['routes'].isNotEmpty) {
           final route = data['routes'][0];
           final geometry = route['geometry'] as String;
-
           final decodedPoints = _decodePolyline(geometry);
+
+          debugPrint('🛣️ Ruta actualizada: ${decodedPoints.length} puntos');
 
           if (!mounted) return;
           setState(() {
             _routePoints = decodedPoints;
             _isLoadingRoute = false;
             _routeError = false;
-            _isInitialLoad = false;
           });
           return;
         }
       }
 
       _useFallbackRoute();
-    } catch (_) {
+    } catch (e) {
+      debugPrint('⚠️ Error al obtener ruta: $e');
       if (!mounted) return;
       _useFallbackRoute();
     }
@@ -296,10 +223,11 @@ class _MapaTrazabilidadWidgetState extends State<MapaTrazabilidadWidget> {
         _routePoints = [];
         _isLoadingRoute = false;
         _routeError = true;
-        _isInitialLoad = false;
       });
       return;
     }
+
+    debugPrint('📏 Usando ruta en línea recta');
 
     setState(() {
       _routePoints = [
@@ -308,7 +236,6 @@ class _MapaTrazabilidadWidgetState extends State<MapaTrazabilidadWidget> {
       ];
       _isLoadingRoute = false;
       _routeError = true;
-      _isInitialLoad = false;
     });
   }
 
@@ -352,7 +279,8 @@ class _MapaTrazabilidadWidgetState extends State<MapaTrazabilidadWidget> {
   }
 
   void _maybeCenterOnCurrentPosition() {
-    if (!mounted) return;
+    if (!mounted || _userInteractedWithMap) return;
+
     final pos = widget.currentPosition;
     if (pos == null) return;
 
@@ -365,7 +293,7 @@ class _MapaTrazabilidadWidgetState extends State<MapaTrazabilidadWidget> {
     }
 
     if (_lastCenterAt != null &&
-        now.difference(_lastCenterAt!) < const Duration(seconds: 2)) {
+        now.difference(_lastCenterAt!) < const Duration(seconds: 3)) {
       return;
     }
 
@@ -376,7 +304,7 @@ class _MapaTrazabilidadWidgetState extends State<MapaTrazabilidadWidget> {
       current.longitude,
     );
 
-    if (dist > 80) {
+    if (dist > 50) {
       _center(current);
     }
   }
@@ -385,10 +313,18 @@ class _MapaTrazabilidadWidgetState extends State<MapaTrazabilidadWidget> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       try {
-        _mapController.move(target, 15.0);
+        _mapController.move(target, 16.0);
         _lastCentered = target;
         _lastCenterAt = DateTime.now();
       } catch (_) {}
+    });
+  }
+
+  void _onMapInteraction() {
+    _userInteractedWithMap = true;
+    _resetInteractionTimer?.cancel();
+    _resetInteractionTimer = Timer(const Duration(seconds: 10), () {
+      _userInteractedWithMap = false;
     });
   }
 
@@ -411,19 +347,22 @@ class _MapaTrazabilidadWidgetState extends State<MapaTrazabilidadWidget> {
           mapController: _mapController,
           options: MapOptions(
             initialCenter: currentLatLng,
-            initialZoom: 15.0,
+            initialZoom: 16.0,
             minZoom: 5.0,
-            maxZoom: 18.0,
+            maxZoom: 18.5,
             interactionOptions: const InteractionOptions(
               flags: InteractiveFlag.all,
             ),
+            onPositionChanged: (_, __) => _onMapInteraction(),
+            onTap: (_, __) => _onMapInteraction(),
           ),
           children: [
             TileLayer(
               urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
               userAgentPackageName: 'bo.edu.ucb.sumajflow',
               tileProvider: _tileProvider,
-              errorTileCallback: (tile, error, stackTrace) {},
+              maxNativeZoom: 19,
+              maxZoom: 22,
             ),
 
             if (_routePoints.isNotEmpty)
@@ -432,7 +371,7 @@ class _MapaTrazabilidadWidgetState extends State<MapaTrazabilidadWidget> {
                   Polyline(
                     points: _routePoints,
                     strokeWidth: _routeError ? 3 : 5,
-                    color: theme.colorScheme.primary,
+                    color: theme.colorScheme.primary.withValues(alpha: 0.8),
                     borderStrokeWidth: 2,
                     borderColor: Colors.white,
                   ),
@@ -463,65 +402,25 @@ class _MapaTrazabilidadWidgetState extends State<MapaTrazabilidadWidget> {
           ],
         ),
 
-        // 👇 MODIFICADO: Solo mostrar loading en la carga inicial
-        if (_isLoadingRoute && _isInitialLoad)
-          Positioned(
-            top: 16,
-            left: 16,
-            right: 16,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.7),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  ),
-                  SizedBox(width: 12),
-                  Text(
-                    'Calculando ruta...',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
         if (_routeError && !_isLoadingRoute)
           Positioned(
             top: 16,
             left: 16,
             right: 16,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 color: Colors.orange.withValues(alpha: 0.95),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    Icons.info_outline_rounded,
-                    color: Colors.white,
-                    size: 18,
-                  ),
-                  SizedBox(width: 12),
+                  Icon(Icons.info_outline, color: Colors.white, size: 16),
+                  SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Ruta aproximada en línea recta',
+                      'Ruta aproximada',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 12,
@@ -538,7 +437,10 @@ class _MapaTrazabilidadWidgetState extends State<MapaTrazabilidadWidget> {
           bottom: 16,
           right: 16,
           child: FloatingActionButton.small(
-            onPressed: () => _center(currentLatLng),
+            onPressed: () {
+              _userInteractedWithMap = false;
+              _center(currentLatLng);
+            },
             backgroundColor: theme.colorScheme.surface,
             child: Icon(
               Icons.my_location_rounded,
@@ -584,35 +486,27 @@ class _MapaTrazabilidadWidgetState extends State<MapaTrazabilidadWidget> {
   }
 
   Widget _buildWaypointMarker(ThemeData theme) {
-    return TweenAnimationBuilder<double>(
-      duration: const Duration(milliseconds: 600),
-      curve: Curves.elasticOut,
-      tween: Tween(begin: 0, end: 1),
-      builder: (context, value, child) {
-        return Transform.scale(scale: value, child: child);
-      },
-      child: Container(
-        width: 50,
-        height: 50,
-        decoration: BoxDecoration(
-          color: _hexToColor(widget.proximoWaypoint!.color),
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.white, width: 3),
-          boxShadow: [
-            BoxShadow(
-              color: _hexToColor(
-                widget.proximoWaypoint!.color,
-              ).withValues(alpha: 0.4),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Center(
-          child: Text(
-            widget.proximoWaypoint!.iconoEmoji,
-            style: const TextStyle(fontSize: 24),
+    return Container(
+      width: 50,
+      height: 50,
+      decoration: BoxDecoration(
+        color: _hexToColor(widget.proximoWaypoint!.color),
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 3),
+        boxShadow: [
+          BoxShadow(
+            color: _hexToColor(
+              widget.proximoWaypoint!.color,
+            ).withValues(alpha: 0.4),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
+        ],
+      ),
+      child: Center(
+        child: Text(
+          widget.proximoWaypoint!.iconoEmoji,
+          style: const TextStyle(fontSize: 24),
         ),
       ),
     );

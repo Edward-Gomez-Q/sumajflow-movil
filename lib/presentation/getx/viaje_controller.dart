@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
+import 'package:sumajflow_movil/core/config/tracking_config.dart';
 import 'package:sumajflow_movil/core/services/location_service.dart';
 import 'package:sumajflow_movil/core/services/notification_service.dart';
 import 'package:sumajflow_movil/data/enums/estado_viaje.dart';
@@ -47,11 +48,6 @@ class ViajeController extends GetxController {
   // Geofencing
   final distanciaAlDestino = Rxn<double>();
   final dentroDeGeofence = false.obs;
-
-  // Radios de geofencing (metros)
-  static const double _radioMina = 500;
-  static const double _radioBalanza = 200;
-  static const double _radioAlmacen = 300;
 
   ViajeController({required this.asignacionId, this.loteDetalleInicial});
 
@@ -537,17 +533,18 @@ class ViajeController extends GetxController {
     }
   }
 
+  // En el método _getRadioGeofence, usar las constantes:
   double _getRadioGeofence() {
     switch (estadoActual.value) {
       case EstadoViaje.enCaminoMina:
-        return _radioMina;
+        return TrackingConfig.radioMina;
       case EstadoViaje.enCaminoBalanzaCoop:
       case EstadoViaje.enCaminoBalanzaDestino:
-        return _radioBalanza;
+        return TrackingConfig.radioBalanza;
       case EstadoViaje.rutaCompletada:
-        return _radioAlmacen;
+        return TrackingConfig.radioAlmacen;
       default:
-        return _radioMina;
+        return TrackingConfig.radioMina;
     }
   }
 

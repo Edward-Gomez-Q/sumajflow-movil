@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
+import 'package:sumajflow_movil/core/config/tracking_config.dart';
 import 'package:sumajflow_movil/core/services/location_service.dart';
 import 'package:sumajflow_movil/core/services/offline_storage_service.dart';
 import 'package:sumajflow_movil/data/models/tracking_models.dart';
@@ -11,7 +12,6 @@ import 'package:sumajflow_movil/data/repositories/tracking_repository.dart';
 import 'package:flutter/rendering.dart';
 
 /// Controller dedicado EXCLUSIVAMENTE al tracking GPS
-/// No maneja UI ni eventos de negocio
 class TrackingController extends GetxController {
   final int asignacionId;
 
@@ -25,15 +25,18 @@ class TrackingController extends GetxController {
   final isOnline = true.obs;
   final isActive = false.obs;
   final isPaused = false.obs;
+  final lastUpdateTime = Rxn<DateTime>();
+  final hasGpsIssue = false.obs; // 👈 NUEVO: Indica problemas con GPS
 
   // Timers
   Timer? _locationUpdateTimer;
   Timer? _syncTimer;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
+  StreamSubscription<Position>? _positionStreamSubscription;
 
-  // Config
-  static const int _locationUpdateIntervalSeconds = 30;
-  static const int _syncIntervalSeconds = 60;
+  // Control de errores GPS
+  int _consecutiveGpsErrors = 0;
+  static const int _maxConsecutiveErrors = 3;
 
   TrackingController({required this.asignacionId});
 
@@ -74,31 +77,40 @@ class TrackingController extends GetxController {
         throw Exception('No se pudo obtener ubicación inicial');
       }
       currentPosition.value = position;
+      lastUpdateTime.value = DateTime.now();
+      _consecutiveGpsErrors = 0;
+      hasGpsIssue.value = false;
 
-      // Iniciar tracking continuo
-      final success = await _locationService.startTracking(
-        onUpdate: _onLocationUpdate,
-        onErrorCallback: _onLocationError,
-        intervalSeconds: _locationUpdateIntervalSeconds,
-      );
+      // Iniciar stream de ubicación en tiempo real
+      // 👇 MODIFICADO: Sin timeLimit para evitar TimeoutException
+      _positionStreamSubscription =
+          Geolocator.getPositionStream(
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.high,
+              distanceFilter: 5, // Actualizar cada 5 metros
+              // ❌ NO usar timeLimit - causa TimeoutException
+            ),
+          ).listen(
+            _onLocationUpdate,
+            onError: _onLocationError,
+            cancelOnError: false, // Continuar escuchando después de errores
+          );
 
-      if (!success) {
-        throw Exception('No se pudo iniciar el tracking');
-      }
-
-      // Timer de respaldo
+      // Timer de respaldo para asegurar actualizaciones periódicas
       _locationUpdateTimer = Timer.periodic(
-        Duration(seconds: _locationUpdateIntervalSeconds),
+        Duration(seconds: TrackingConfig.locationUpdateInterval),
         (_) => _actualizarUbicacionManual(),
       );
 
-      // Iniciar sincronización
+      // Iniciar sincronización periódica
       _iniciarSincronizacionPeriodica();
 
       isActive.value = true;
       isPaused.value = false;
 
-      debugPrint('✅ Tracking GPS iniciado correctamente');
+      debugPrint(
+        '✅ Tracking GPS iniciado - Intervalo: ${TrackingConfig.locationUpdateInterval}s',
+      );
     } catch (e) {
       debugPrint('❌ Error al iniciar tracking: $e');
       isActive.value = false;
@@ -112,9 +124,9 @@ class TrackingController extends GetxController {
     debugPrint('⏸️ Pausando tracking GPS');
     isPaused.value = true;
 
+    _positionStreamSubscription?.pause();
     _locationUpdateTimer?.cancel();
     _syncTimer?.cancel();
-    _locationService.stopTracking();
 
     // Sincronizar antes de pausar
     _sincronizarDatosOffline();
@@ -126,7 +138,18 @@ class TrackingController extends GetxController {
     debugPrint('▶️ Reanudando tracking GPS');
     isPaused.value = false;
 
-    await iniciarTracking();
+    _positionStreamSubscription?.resume();
+
+    // Reiniciar timers
+    _locationUpdateTimer = Timer.periodic(
+      Duration(seconds: TrackingConfig.locationUpdateInterval),
+      (_) => _actualizarUbicacionManual(),
+    );
+
+    _iniciarSincronizacionPeriodica();
+
+    // Obtener ubicación actual
+    await _actualizarUbicacionManual();
   }
 
   void detenerTracking() {
@@ -135,14 +158,18 @@ class TrackingController extends GetxController {
     isActive.value = false;
     isPaused.value = false;
 
+    _positionStreamSubscription?.cancel();
+    _positionStreamSubscription = null;
     _locationUpdateTimer?.cancel();
     _syncTimer?.cancel();
-    _locationService.stopTracking();
 
     // Sincronizar datos pendientes
     if (isOnline.value) {
       _sincronizarDatosOffline();
     }
+
+    _consecutiveGpsErrors = 0;
+    hasGpsIssue.value = false;
   }
 
   // ============================================================
@@ -151,44 +178,104 @@ class TrackingController extends GetxController {
 
   void _onLocationUpdate(Position position) {
     if (!isActive.value || isPaused.value) {
-      debugPrint('⏸️ Tracking pausado/inactivo, ignorando actualización');
       return;
     }
 
+    // Reset contador de errores en actualización exitosa
+    _consecutiveGpsErrors = 0;
+    hasGpsIssue.value = false;
+
+    final now = DateTime.now();
+    final lastUpdate = lastUpdateTime.value;
+
+    // Verificar si es una actualización significativa
+    if (lastUpdate != null) {
+      final timeSinceLastUpdate = now.difference(lastUpdate);
+      if (timeSinceLastUpdate.inSeconds <
+          TrackingConfig.locationUpdateInterval) {
+        // Si es muy pronto, solo actualizar posición local sin enviar al backend
+        currentPosition.value = position;
+        return;
+      }
+    }
+
     currentPosition.value = position;
+    lastUpdateTime.value = now;
+
     debugPrint(
-      '📍 Nueva ubicación: ${position.latitude}, ${position.longitude}',
+      '📍 Nueva ubicación: ${position.latitude.toStringAsFixed(6)}, ${position.longitude.toStringAsFixed(6)} | '
+      'Velocidad: ${(position.speed * 3.6).toStringAsFixed(1)} km/h | '
+      'Precisión: ${position.accuracy.toStringAsFixed(1)}m',
     );
 
     _enviarUbicacionAlBackend(position);
   }
 
-  void _onLocationError(String error) {
-    debugPrint('❌ Error de ubicación: $error');
-    _guardarUbicacionOffline();
+  void _onLocationError(dynamic error) {
+    if (!isActive.value || isPaused.value) return;
+
+    _consecutiveGpsErrors++;
+
+    // Identificar el tipo de error
+    if (error is TimeoutException) {
+      debugPrint(
+        '⏱️ Timeout GPS (${_consecutiveGpsErrors}/$_maxConsecutiveErrors) - '
+        'Señal débil o en interior',
+      );
+    } else {
+      debugPrint(
+        '❌ Error de ubicación: $error (${_consecutiveGpsErrors}/$_maxConsecutiveErrors)',
+      );
+    }
+
+    // Marcar problema GPS si hay muchos errores consecutivos
+    if (_consecutiveGpsErrors >= _maxConsecutiveErrors) {
+      if (!hasGpsIssue.value) {
+        debugPrint('⚠️ Problemas persistentes con GPS detectados');
+        hasGpsIssue.value = true;
+      }
+    }
+
+    // Guardar última ubicación conocida offline
+    if (currentPosition.value != null) {
+      _guardarUbicacionOffline();
+    }
+
+    // Intentar obtener ubicación manualmente como fallback
+    _actualizarUbicacionManual();
   }
 
   Future<void> _enviarUbicacionAlBackend(Position position) async {
-    if (!isActive.value) return;
+    if (!isActive.value || isPaused.value) return;
 
     try {
-      final response = await _trackingRepository.actualizarUbicacion(
-        asignacionCamionId: asignacionId,
-        lat: position.latitude,
-        lng: position.longitude,
-        precision: position.accuracy,
-        velocidad: position.speed * 3.6,
-        rumbo: position.heading,
-        altitud: position.altitude,
-        timestampCaptura: DateTime.now(),
-      );
+      final response = await _trackingRepository
+          .actualizarUbicacion(
+            asignacionCamionId: asignacionId,
+            lat: position.latitude,
+            lng: position.longitude,
+            precision: position.accuracy,
+            velocidad: position.speed * 3.6,
+            rumbo: position.heading,
+            altitud: position.altitude,
+            timestampCaptura: DateTime.now(),
+          )
+          .timeout(
+            const Duration(seconds: 5),
+            onTimeout: () =>
+                throw TimeoutException('Timeout al enviar ubicación'),
+          );
 
       if (response.success) {
+        if (!isOnline.value) {
+          debugPrint('🟢 Reconectado al backend');
+        }
         isOnline.value = true;
-        // El ViajeController escuchará cambios de estado desde el backend
       }
     } catch (e) {
-      debugPrint('❌ Error al enviar ubicación: $e');
+      if (isOnline.value) {
+        debugPrint('🔴 Desconectado del backend: $e');
+      }
       isOnline.value = false;
       await _guardarUbicacionOffline(position);
     }
@@ -209,15 +296,39 @@ class TrackingController extends GetxController {
     );
 
     await _offlineStorage.saveLocationOffline(asignacionId, ubicacionOffline);
-    debugPrint('💾 Ubicación guardada offline');
+    debugPrint(
+      '💾 Ubicación guardada offline (${_offlineStorage.totalPendingLocations} pendientes)',
+    );
   }
 
   Future<void> _actualizarUbicacionManual() async {
     if (!isActive.value || isPaused.value) return;
 
-    final position = await _locationService.getCurrentPosition();
-    if (position != null) {
-      _onLocationUpdate(position);
+    try {
+      // 👇 MODIFICADO: Usar timeout más largo para evitar fallos
+      final position = await _locationService.getCurrentPosition().timeout(
+        const Duration(seconds: 15),
+        onTimeout: () {
+          debugPrint(
+            '⏱️ Timeout en getCurrentPosition, usando última posición conocida',
+          );
+          return null;
+        },
+      );
+
+      if (position != null) {
+        _onLocationUpdate(position);
+      } else if (currentPosition.value != null) {
+        // Si no hay nueva posición pero tenemos una anterior, guardarla offline
+        debugPrint('📍 Usando última posición conocida');
+        await _guardarUbicacionOffline();
+      }
+    } catch (e) {
+      debugPrint('⚠️ Error en actualización manual: $e');
+      // Intentar guardar última posición conocida
+      if (currentPosition.value != null) {
+        await _guardarUbicacionOffline();
+      }
     }
   }
 
@@ -231,24 +342,32 @@ class TrackingController extends GetxController {
     ) {
       final hasConnection = results.any((r) => r != ConnectivityResult.none);
       final wasOffline = !isOnline.value;
-      isOnline.value = hasConnection;
 
       if (hasConnection && wasOffline) {
-        debugPrint('🔄 Reconectado, sincronizando...');
+        debugPrint('🔄 Conexión restaurada, sincronizando...');
         _sincronizarDatosOffline();
+      } else if (!hasConnection && !wasOffline) {
+        debugPrint('📡 Conexión perdida, modo offline activado');
       }
+
+      isOnline.value = hasConnection;
     });
   }
 
   void _iniciarSincronizacionPeriodica() {
     _syncTimer?.cancel();
     _syncTimer = Timer.periodic(
-      Duration(seconds: _syncIntervalSeconds),
+      Duration(seconds: TrackingConfig.syncInterval),
       (_) => _sincronizarDatosOffline(),
+    );
+    debugPrint(
+      '🔄 Sincronización periódica iniciada cada ${TrackingConfig.syncInterval}s',
     );
   }
 
   Future<void> _sincronizarDatosOffline() async {
+    if (!isOnline.value) return;
+
     try {
       final ubicacionesPendientes = await _offlineStorage.getPendingLocations(
         asignacionId,
@@ -259,20 +378,25 @@ class TrackingController extends GetxController {
       }
 
       debugPrint(
-        '🔄 Sincronizando ${ubicacionesPendientes.length} ubicaciones...',
+        '🔄 Sincronizando ${ubicacionesPendientes.length} ubicaciones pendientes...',
       );
 
-      await _trackingRepository.sincronizarUbicaciones(
-        asignacionCamionId: asignacionId,
-        ubicaciones: ubicacionesPendientes,
-      );
+      await _trackingRepository
+          .sincronizarUbicaciones(
+            asignacionCamionId: asignacionId,
+            ubicaciones: ubicacionesPendientes,
+          )
+          .timeout(
+            const Duration(seconds: 10),
+            onTimeout: () =>
+                throw TimeoutException('Timeout en sincronización'),
+          );
 
       await _offlineStorage.markLocationsSynced(
         asignacionId,
         ubicacionesPendientes.length,
       );
 
-      isOnline.value = true;
       debugPrint('✅ Sincronización completada');
     } catch (e) {
       debugPrint('❌ Error al sincronizar: $e');
