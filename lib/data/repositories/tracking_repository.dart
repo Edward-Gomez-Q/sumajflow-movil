@@ -1,10 +1,12 @@
 // lib/data/repositories/tracking_repository.dart
 
+import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:sumajflow_movil/core/constants/api_constants.dart';
 import 'package:sumajflow_movil/core/services/auth_service.dart';
+import 'package:sumajflow_movil/core/exceptions/network_exception.dart';
 import 'package:sumajflow_movil/data/models/tracking_models.dart';
-import 'package:flutter/rendering.dart';
+import 'package:flutter/foundation.dart';
 
 class TrackingRepository {
   late final Dio _dio;
@@ -13,9 +15,13 @@ class TrackingRepository {
     _dio = Dio(
       BaseOptions(
         baseUrl: ApiConstants.baseUrl,
-        connectTimeout: const Duration(seconds: 30),
-        receiveTimeout: const Duration(seconds: 30),
+        connectTimeout: const Duration(seconds: 5),
+        receiveTimeout: const Duration(seconds: 5),
+        sendTimeout: const Duration(seconds: 5),
         headers: {'Content-Type': 'application/json'},
+        validateStatus: (status) {
+          return status != null && status < 500;
+        },
       ),
     );
 
@@ -29,43 +35,22 @@ class TrackingRepository {
           return handler.next(options);
         },
         onError: (error, handler) {
-          debugPrint('❌ Error en tracking repository: ${error.message}');
-          return handler.next(error);
+          // Solo loguear errores no esperados
+          if (error.type != DioExceptionType.connectionTimeout &&
+              error.type != DioExceptionType.receiveTimeout &&
+              error.type != DioExceptionType.connectionError &&
+              error.type != DioExceptionType.sendTimeout) {
+            debugPrint('❌ TrackingRepository Error: ${error.type}');
+          }
+
+          // IMPORTANTE: Usar reject para que el error se propague correctamente
+          return handler.reject(error);
         },
       ),
     );
   }
 
-  // ==================== TRACKING ====================
-
-  /// Inicia el tracking de un viaje
-  Future<TrackingModel> iniciarTracking({
-    required int asignacionCamionId,
-    double? latInicial,
-    double? lngInicial,
-  }) async {
-    try {
-      final response = await _dio.post(
-        '/tracking/iniciar',
-        data: {
-          'asignacionCamionId': asignacionCamionId,
-          'latInicial': latInicial,
-          'lngInicial': lngInicial,
-        },
-      );
-
-      if ((response.statusCode == 200 || response.statusCode == 201) &&
-          response.data['success'] == true) {
-        return TrackingModel.fromJson(response.data['data']);
-      }
-
-      throw Exception(response.data['message'] ?? 'Error al iniciar tracking');
-    } on DioException catch (e) {
-      throw _handleDioError(e);
-    }
-  }
-
-  /// Actualiza la ubicación actual
+  /// Actualiza la ubicación del camión
   Future<ActualizacionUbicacionResponse> actualizarUbicacion({
     required int asignacionCamionId,
     required double lat,
@@ -75,7 +60,6 @@ class TrackingRepository {
     double? rumbo,
     double? altitud,
     DateTime? timestampCaptura,
-    bool esOffline = false,
   }) async {
     try {
       final response = await _dio.post(
@@ -84,108 +68,42 @@ class TrackingRepository {
           'asignacionCamionId': asignacionCamionId,
           'lat': lat,
           'lng': lng,
-          'precision': precision,
-          'velocidad': velocidad,
-          'rumbo': rumbo,
-          'altitud': altitud,
-          'timestampCaptura': timestampCaptura?.toIso8601String(),
-          'esOffline': esOffline,
+          if (precision != null) 'precision': precision,
+          if (velocidad != null) 'velocidad': velocidad,
+          if (rumbo != null) 'rumbo': rumbo,
+          if (altitud != null) 'altitud': altitud,
+          'timestampCaptura': (timestampCaptura ?? DateTime.now())
+              .toIso8601String(),
+          'esOffline': false,
         },
       );
 
       if (response.statusCode == 200 && response.data['success'] == true) {
-        return ActualizacionUbicacionResponse.fromJson(response.data['data']);
+        return ActualizacionUbicacionResponse(
+          success: true,
+          mensaje: 'Ubicación actualizada',
+        );
       }
 
-      throw Exception(
+      throw NetworkException(
         response.data['message'] ?? 'Error al actualizar ubicación',
+        type: NetworkExceptionType.serverError,
       );
     } on DioException catch (e) {
+      // Convertir DioException a NetworkException
       throw _handleDioError(e);
+    } catch (e) {
+      // Cualquier otra excepción se convierte a NetworkException
+      if (e is NetworkException) rethrow;
+      throw NetworkException(
+        'Error inesperado al actualizar ubicación',
+        type: NetworkExceptionType.unknown,
+      );
     }
   }
 
-  /// Obtiene el tracking actual de una asignación
-  Future<TrackingModel> getTracking(int asignacionCamionId) async {
-    try {
-      final response = await _dio.get(
-        '/tracking/asignacion/$asignacionCamionId',
-      );
-
-      if (response.statusCode == 200 && response.data['success'] == true) {
-        return TrackingModel.fromJson(response.data['data']);
-      }
-
-      throw Exception(response.data['message'] ?? 'Error al obtener tracking');
-    } on DioException catch (e) {
-      throw _handleDioError(e);
-    }
-  }
-
-  // ==================== PUNTOS DE CONTROL ====================
-
-  /// Registra llegada a un punto de control
-  Future<TrackingModel> registrarLlegada({
-    required int asignacionCamionId,
-    required String tipoPunto,
-    double? lat,
-    double? lng,
-    String? observaciones,
-  }) async {
-    try {
-      final response = await _dio.post(
-        '/tracking/punto-control/llegada',
-        data: {
-          'asignacionCamionId': asignacionCamionId,
-          'tipoPunto': tipoPunto,
-          'accion': 'llegada',
-          'lat': lat,
-          'lng': lng,
-          'observaciones': observaciones,
-        },
-      );
-
-      if (response.statusCode == 200 && response.data['success'] == true) {
-        return TrackingModel.fromJson(response.data['data']);
-      }
-
-      throw Exception(response.data['message'] ?? 'Error al registrar llegada');
-    } on DioException catch (e) {
-      throw _handleDioError(e);
-    }
-  }
-
-  /// Registra salida de un punto de control
-  Future<TrackingModel> registrarSalida({
-    required int asignacionCamionId,
-    required String tipoPunto,
-    String? observaciones,
-  }) async {
-    try {
-      final response = await _dio.post(
-        '/tracking/punto-control/salida',
-        data: {
-          'asignacionCamionId': asignacionCamionId,
-          'tipoPunto': tipoPunto,
-          'accion': 'salida',
-          'observaciones': observaciones,
-        },
-      );
-
-      if (response.statusCode == 200 && response.data['success'] == true) {
-        return TrackingModel.fromJson(response.data['data']);
-      }
-
-      throw Exception(response.data['message'] ?? 'Error al registrar salida');
-    } on DioException catch (e) {
-      throw _handleDioError(e);
-    }
-  }
-
-  // ==================== SINCRONIZACIÓN OFFLINE ====================
-
-  /// Sincroniza ubicaciones capturadas offline
-  Future<Map<String, dynamic>> sincronizarUbicaciones({
+  /// Sincroniza ubicaciones guardadas offline
+  Future<SincronizacionResponse> sincronizarUbicaciones({
     required int asignacionCamionId,
     required List<UbicacionOfflineModel> ubicaciones,
   }) async {
@@ -199,28 +117,116 @@ class TrackingRepository {
       );
 
       if (response.statusCode == 200) {
-        return response.data['data'];
+        final data = response.data['data'] ?? {};
+        return SincronizacionResponse(
+          success: response.data['success'] ?? false,
+          ubicacionesSincronizadas: data['ubicacionesSincronizadas'] ?? 0,
+          ubicacionesFallidas: data['ubicacionesFallidas'] ?? 0,
+        );
       }
 
-      throw Exception(response.data['message'] ?? 'Error al sincronizar');
+      throw NetworkException(
+        'Error al sincronizar ubicaciones',
+        type: NetworkExceptionType.serverError,
+      );
     } on DioException catch (e) {
       throw _handleDioError(e);
+    } catch (e) {
+      if (e is NetworkException) rethrow;
+      throw NetworkException(
+        'Error inesperado al sincronizar',
+        type: NetworkExceptionType.unknown,
+      );
     }
   }
 
-  // ==================== UTILIDADES ====================
+  NetworkException _handleDioError(DioException e) {
+    switch (e.type) {
+      case DioExceptionType.connectionTimeout:
+      case DioExceptionType.sendTimeout:
+      case DioExceptionType.receiveTimeout:
+        return NetworkException(
+          'Sin conexión al servidor',
+          type: NetworkExceptionType.timeout,
+        );
 
-  Exception _handleDioError(DioException e) {
-    if (e.response != null) {
-      final message = e.response!.data['message'] ?? 'Error del servidor';
-      return Exception(message);
-    } else if (e.type == DioExceptionType.connectionTimeout) {
-      return Exception('Tiempo de conexión agotado');
-    } else if (e.type == DioExceptionType.receiveTimeout) {
-      return Exception('Tiempo de respuesta agotado');
-    } else if (e.type == DioExceptionType.connectionError) {
-      return Exception('Sin conexión a internet');
+      case DioExceptionType.connectionError:
+        // Verificar si es específicamente un error de red
+        if (e.error is SocketException) {
+          return NetworkException(
+            'Sin conexión a internet',
+            type: NetworkExceptionType.noConnection,
+          );
+        }
+        return NetworkException(
+          'Error de conexión',
+          type: NetworkExceptionType.noConnection,
+        );
+
+      case DioExceptionType.badResponse:
+        final statusCode = e.response?.statusCode;
+        if (statusCode == 500 || statusCode == 502 || statusCode == 503) {
+          return NetworkException(
+            'Error del servidor',
+            type: NetworkExceptionType.serverError,
+          );
+        }
+        return NetworkException(
+          e.response?.data?['message'] ?? 'Error del servidor',
+          type: NetworkExceptionType.serverError,
+        );
+
+      case DioExceptionType.cancel:
+        return NetworkException(
+          'Operación cancelada',
+          type: NetworkExceptionType.unknown,
+        );
+
+      case DioExceptionType.badCertificate:
+        return NetworkException(
+          'Error de certificado SSL',
+          type: NetworkExceptionType.unknown,
+        );
+
+      case DioExceptionType.unknown:
+        if (e.error is SocketException) {
+          return NetworkException(
+            'Sin conexión a internet',
+            type: NetworkExceptionType.noConnection,
+          );
+        }
+        return NetworkException(
+          'Error de conexión desconocido',
+          type: NetworkExceptionType.unknown,
+        );
+
+      default:
+        return NetworkException(
+          'Error de conexión',
+          type: NetworkExceptionType.unknown,
+        );
     }
-    return Exception('Error de conexión: ${e.message}');
   }
+}
+
+class ActualizacionUbicacionResponse {
+  final bool success;
+  final String mensaje;
+
+  ActualizacionUbicacionResponse({
+    required this.success,
+    required this.mensaje,
+  });
+}
+
+class SincronizacionResponse {
+  final bool success;
+  final int ubicacionesSincronizadas;
+  final int ubicacionesFallidas;
+
+  SincronizacionResponse({
+    required this.success,
+    required this.ubicacionesSincronizadas,
+    required this.ubicacionesFallidas,
+  });
 }

@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:sumajflow_movil/core/constants/api_constants.dart';
 import 'package:sumajflow_movil/core/services/auth_service.dart';
+import 'package:sumajflow_movil/core/exceptions/network_exception.dart';
 import 'package:sumajflow_movil/data/providers/api_provider.dart';
 import 'package:flutter/rendering.dart';
 
@@ -17,8 +18,9 @@ class ViajeRepository {
     _dio = Dio(
       BaseOptions(
         baseUrl: ApiConstants.baseUrl,
-        connectTimeout: const Duration(seconds: 30),
-        receiveTimeout: const Duration(seconds: 30),
+        connectTimeout: const Duration(seconds: 15),
+        receiveTimeout: const Duration(seconds: 15),
+        sendTimeout: const Duration(seconds: 15),
         headers: {'Content-Type': 'application/json'},
       ),
     );
@@ -31,18 +33,23 @@ class ViajeRepository {
             options.headers['Authorization'] = 'Bearer $token';
           }
           debugPrint('🔵 Request: ${options.method} ${options.path}');
-          debugPrint('🔵 Headers: ${options.headers}');
-          debugPrint('🔵 Data: ${options.data}');
           return handler.next(options);
         },
         onResponse: (response, handler) {
-          debugPrint('✅ Response [${response.statusCode}]: ${response.data}');
+          debugPrint('✅ Response [${response.statusCode}]: Success');
           return handler.next(response);
         },
         onError: (error, handler) {
-          debugPrint('❌ Error en viaje repository: ${error.message}');
-          debugPrint('❌ Response: ${error.response?.data}');
-          return handler.next(error);
+          // No loguear errores de conexión para no saturar
+          if (error.type != DioExceptionType.connectionTimeout &&
+              error.type != DioExceptionType.receiveTimeout &&
+              error.type != DioExceptionType.connectionError &&
+              error.type != DioExceptionType.sendTimeout) {
+            debugPrint('❌ DioError: ${error.type}');
+          }
+
+          // IMPORTANTE: usar reject, no next
+          return handler.reject(error);
         },
       ),
     );
@@ -77,11 +84,12 @@ class ViajeRepository {
 
       throw Exception(response.data['message'] ?? 'Error al iniciar viaje');
     } on DioException catch (e) {
-      debugPrint('❌ DioException en iniciarViaje: ${e.message}');
-      throw _handleDioError(e);
+      debugPrint('❌ DioException en iniciarViaje: ${e.type}');
+      throw _handleDioError(e, 'iniciar viaje');
     } catch (e) {
       debugPrint('❌ Exception en iniciarViaje: $e');
-      rethrow;
+      if (e is NetworkException) rethrow;
+      throw Exception('Error inesperado: $e');
     }
   }
 
@@ -126,11 +134,12 @@ class ViajeRepository {
         response.data['message'] ?? 'Error al confirmar llegada a mina',
       );
     } on DioException catch (e) {
-      debugPrint('❌ DioException en confirmarLlegadaMina: ${e.message}');
-      throw _handleDioError(e);
+      debugPrint('❌ DioException en confirmarLlegadaMina: ${e.type}');
+      throw _handleDioError(e, 'confirmar llegada a mina');
     } catch (e) {
       debugPrint('❌ Exception en confirmarLlegadaMina: $e');
-      rethrow;
+      if (e is NetworkException) rethrow;
+      throw Exception('Error inesperado: $e');
     }
   }
 
@@ -167,11 +176,12 @@ class ViajeRepository {
 
       throw Exception(response.data['message'] ?? 'Error al confirmar carguío');
     } on DioException catch (e) {
-      debugPrint('❌ DioException en confirmarCarguio: ${e.message}');
-      throw _handleDioError(e);
+      debugPrint('❌ DioException en confirmarCarguio: ${e.type}');
+      throw _handleDioError(e, 'confirmar carguío');
     } catch (e) {
       debugPrint('❌ Exception en confirmarCarguio: $e');
-      rethrow;
+      if (e is NetworkException) rethrow;
+      throw Exception('Error inesperado: $e');
     }
   }
 
@@ -183,7 +193,7 @@ class ViajeRepository {
   /// - En camino balanza destino → En camino almacén destino (tipoPesaje: "destino")
   Future<TransicionEstadoResponse> registrarPesaje({
     required int asignacionId,
-    required String tipoPesaje, // "cooperativa" o "destino"
+    required String tipoPesaje,
     required double pesoBrutoKg,
     required double pesoTaraKg,
     String? observaciones,
@@ -212,11 +222,12 @@ class ViajeRepository {
 
       throw Exception(response.data['message'] ?? 'Error al registrar pesaje');
     } on DioException catch (e) {
-      debugPrint('❌ DioException en registrarPesaje: ${e.message}');
-      throw _handleDioError(e);
+      debugPrint('❌ DioException en registrarPesaje: ${e.type}');
+      throw _handleDioError(e, 'registrar pesaje');
     } catch (e) {
       debugPrint('❌ Exception en registrarPesaje: $e');
-      rethrow;
+      if (e is NetworkException) rethrow;
+      throw Exception('Error inesperado: $e');
     }
   }
 
@@ -244,30 +255,12 @@ class ViajeRepository {
 
       throw Exception(response.data['message'] ?? 'Error al iniciar descarga');
     } on DioException catch (e) {
-      debugPrint('❌ DioException en iniciarDescarga: ${e.message}');
-      throw _handleDioError(e);
+      debugPrint('❌ DioException en iniciarDescarga: ${e.type}');
+      throw _handleDioError(e, 'iniciar descarga');
     } catch (e) {
       debugPrint('❌ Exception en iniciarDescarga: $e');
-      rethrow;
-    }
-  }
-
-  /// Sube una evidencia (imagen) sin token de autenticación
-  /// Retorna el objectName del archivo subido
-  Future<String> uploadEvidencia(File file, int asignacionId) async {
-    try {
-      debugPrint('📤 Subiendo evidencia para asignacionId: $asignacionId');
-
-      final objectName = await _apiProvider.uploadFile(
-        file,
-        folder: 'evidencias/viajes/$asignacionId',
-      );
-
-      debugPrint('✅ Evidencia subida: $objectName');
-      return objectName;
-    } catch (e) {
-      debugPrint('❌ Error al subir evidencia: $e');
-      rethrow;
+      if (e is NetworkException) rethrow;
+      throw Exception('Error inesperado: $e');
     }
   }
 
@@ -304,11 +297,40 @@ class ViajeRepository {
         response.data['message'] ?? 'Error al confirmar descarga',
       );
     } on DioException catch (e) {
-      debugPrint('❌ DioException en confirmarDescarga: ${e.message}');
-      throw _handleDioError(e);
+      debugPrint('❌ DioException en confirmarDescarga: ${e.type}');
+      throw _handleDioError(e, 'confirmar descarga');
     } catch (e) {
       debugPrint('❌ Exception en confirmarDescarga: $e');
-      rethrow;
+      if (e is NetworkException) rethrow;
+      throw Exception('Error inesperado: $e');
+    }
+  }
+
+  // ==================== UPLOAD EVIDENCIA ====================
+
+  /// Sube una evidencia (imagen)
+  /// Retorna el objectName del archivo subido
+  Future<String> uploadEvidencia(File file, int asignacionId) async {
+    try {
+      debugPrint('📤 Subiendo evidencia para asignacionId: $asignacionId');
+
+      final objectName = await _apiProvider.uploadFile(
+        file,
+        folder: 'evidencias/viajes/$asignacionId',
+      );
+
+      debugPrint('✅ Evidencia subida: $objectName');
+      return objectName;
+    } on DioException catch (e) {
+      debugPrint('❌ DioException en uploadEvidencia: ${e.type}');
+      throw _handleDioError(e, 'subir evidencia');
+    } catch (e) {
+      debugPrint('❌ Error al subir evidencia: $e');
+      if (e is NetworkException) rethrow;
+      throw NetworkException(
+        'No se pudo subir la evidencia. Verifica tu conexión.',
+        type: NetworkExceptionType.noConnection,
+      );
     }
   }
 
@@ -359,11 +381,12 @@ class ViajeRepository {
 
       throw Exception(response.data['message'] ?? 'Error al registrar evento');
     } on DioException catch (e) {
-      debugPrint('❌ DioException en registrarEvento: ${e.message}');
-      throw _handleDioError(e);
+      debugPrint('❌ DioException en registrarEvento: ${e.type}');
+      throw _handleDioError(e, 'registrar evento');
     } catch (e) {
       debugPrint('❌ Exception en registrarEvento: $e');
-      rethrow;
+      if (e is NetworkException) rethrow;
+      throw Exception('Error inesperado: $e');
     }
   }
 
@@ -390,30 +413,93 @@ class ViajeRepository {
         response.data['message'] ?? 'Error al obtener estado del viaje',
       );
     } on DioException catch (e) {
-      debugPrint('❌ DioException en getEstadoViaje: ${e.message}');
-      throw _handleDioError(e);
+      debugPrint('❌ DioException en getEstadoViaje: ${e.type}');
+      throw _handleDioError(e, 'obtener estado del viaje');
     } catch (e) {
       debugPrint('❌ Exception en getEstadoViaje: $e');
-      rethrow;
+      if (e is NetworkException) rethrow;
+      throw Exception('Error inesperado: $e');
     }
   }
 
-  // ==================== UTILIDADES ====================
+  // ==================== MANEJO DE ERRORES ====================
 
-  Exception _handleDioError(DioException e) {
-    if (e.response != null) {
-      final message = e.response!.data['message'] ?? 'Error del servidor';
-      return Exception(message);
-    } else if (e.type == DioExceptionType.connectionTimeout) {
-      return Exception('Tiempo de conexión agotado');
-    } else if (e.type == DioExceptionType.receiveTimeout) {
-      return Exception('Tiempo de respuesta agotado');
-    } else if (e.type == DioExceptionType.connectionError) {
-      return Exception('Sin conexión a internet');
+  Exception _handleDioError(DioException e, String action) {
+    debugPrint('🔍 Analizando DioError tipo: ${e.type}');
+
+    switch (e.type) {
+      case DioExceptionType.connectionTimeout:
+      case DioExceptionType.sendTimeout:
+      case DioExceptionType.receiveTimeout:
+        return NetworkException(
+          'Tiempo de espera agotado al $action. Los datos se guardarán localmente.',
+          type: NetworkExceptionType.timeout,
+        );
+
+      case DioExceptionType.connectionError:
+        if (e.error is SocketException) {
+          return NetworkException(
+            'Sin conexión a internet. Los datos se guardarán localmente.',
+            type: NetworkExceptionType.noConnection,
+          );
+        }
+        return NetworkException(
+          'Error de conexión al $action. Verifica tu red.',
+          type: NetworkExceptionType.noConnection,
+        );
+
+      case DioExceptionType.badResponse:
+        final statusCode = e.response?.statusCode;
+        final message = e.response?.data?['message'];
+
+        if (statusCode == 400) {
+          return Exception(message ?? 'Solicitud inválida al $action');
+        } else if (statusCode == 401) {
+          return Exception(
+            'Sesión expirada. Por favor, inicia sesión nuevamente.',
+          );
+        } else if (statusCode == 403) {
+          return Exception('No tienes permiso para realizar esta acción');
+        } else if (statusCode == 404) {
+          return Exception('Recurso no encontrado');
+        } else if (statusCode == 500 ||
+            statusCode == 502 ||
+            statusCode == 503) {
+          return NetworkException(
+            'Error del servidor al $action. Los datos se guardarán localmente.',
+            type: NetworkExceptionType.serverError,
+          );
+        }
+        return NetworkException(
+          'Error del servidor (${statusCode ?? "desconocido"})',
+          type: NetworkExceptionType.serverError,
+        );
+
+      case DioExceptionType.cancel:
+        return Exception('Operación cancelada');
+
+      case DioExceptionType.unknown:
+        if (e.error is SocketException) {
+          return NetworkException(
+            'Sin conexión a internet al $action.',
+            type: NetworkExceptionType.noConnection,
+          );
+        }
+        return NetworkException(
+          'Error desconocido al $action: ${e.message}',
+          type: NetworkExceptionType.unknown,
+        );
+
+      default:
+        return NetworkException(
+          'Error de conexión: ${e.message}',
+          type: NetworkExceptionType.unknown,
+        );
     }
-    return Exception('Error de conexión: ${e.message}');
   }
 }
+
+// ==================== MODELOS DE RESPUESTA ====================
 
 /// Respuesta del estado del viaje
 class EstadoViajeResponse {

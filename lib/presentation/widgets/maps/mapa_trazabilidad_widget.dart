@@ -176,9 +176,25 @@ class _MapaTrazabilidadWidgetState extends State<MapaTrazabilidadWidget> {
         'https://router.project-osrm.org/route/v1/driving/$coordinates?overview=full&geometries=polyline',
       );
 
-      final response = await _httpClient!
-          .get(url)
-          .timeout(TrackingConfig.routeFetchTimeout);
+      // CORRECCIÓN: Usar try-catch para manejar el timeout
+      http.Response? response;
+
+      try {
+        response = await _httpClient!
+            .get(url)
+            .timeout(
+              TrackingConfig.routeFetchTimeout,
+              onTimeout: () {
+                // No lanzar excepción aquí, retornar null
+                throw TimeoutException('Route fetch timeout');
+              },
+            );
+      } on TimeoutException {
+        // Timeout controlado - usar fallback silenciosamente
+        if (!mounted) return;
+        _useFallbackRoute();
+        return;
+      }
 
       if (!mounted) return;
 
@@ -192,8 +208,6 @@ class _MapaTrazabilidadWidgetState extends State<MapaTrazabilidadWidget> {
           final geometry = route['geometry'] as String;
           final decodedPoints = _decodePolyline(geometry);
 
-          debugPrint('🛣️ Ruta actualizada: ${decodedPoints.length} puntos');
-
           if (!mounted) return;
           setState(() {
             _routePoints = decodedPoints;
@@ -205,8 +219,19 @@ class _MapaTrazabilidadWidgetState extends State<MapaTrazabilidadWidget> {
       }
 
       _useFallbackRoute();
+    } on http.ClientException catch (_) {
+      // Error de cliente HTTP (sin conexión, etc.)
+      if (!mounted) return;
+      _useFallbackRoute();
+    } on FormatException catch (_) {
+      // Error al parsear JSON
+      if (!mounted) return;
+      _useFallbackRoute();
     } catch (e) {
-      debugPrint('⚠️ Error al obtener ruta: $e');
+      // Cualquier otro error
+      if (_routePoints.isEmpty) {
+        debugPrint('⚠️ Error al obtener ruta: ${e.runtimeType}');
+      }
       if (!mounted) return;
       _useFallbackRoute();
     }
@@ -226,8 +251,6 @@ class _MapaTrazabilidadWidgetState extends State<MapaTrazabilidadWidget> {
       });
       return;
     }
-
-    debugPrint('📏 Usando ruta en línea recta');
 
     setState(() {
       _routePoints = [
@@ -316,7 +339,9 @@ class _MapaTrazabilidadWidgetState extends State<MapaTrazabilidadWidget> {
         _mapController.move(target, 16.0);
         _lastCentered = target;
         _lastCenterAt = DateTime.now();
-      } catch (_) {}
+      } catch (_) {
+        // Ignorar errores del controlador del mapa
+      }
     });
   }
 
@@ -324,7 +349,9 @@ class _MapaTrazabilidadWidgetState extends State<MapaTrazabilidadWidget> {
     _userInteractedWithMap = true;
     _resetInteractionTimer?.cancel();
     _resetInteractionTimer = Timer(const Duration(seconds: 10), () {
-      _userInteractedWithMap = false;
+      if (mounted) {
+        _userInteractedWithMap = false;
+      }
     });
   }
 
@@ -420,7 +447,7 @@ class _MapaTrazabilidadWidgetState extends State<MapaTrazabilidadWidget> {
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Ruta aproximada',
+                      'Ruta aproximada (sin conexión)',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 12,

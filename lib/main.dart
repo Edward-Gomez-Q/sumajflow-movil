@@ -1,3 +1,5 @@
+// lib/main.dart
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -25,23 +27,37 @@ Future<void> main() async {
   try {
     debugPrint('🚀 Inicializando servicios...');
 
+    // Servicios críticos
     await Get.putAsync(() => AuthService().init());
-    debugPrint('  AuthService inicializado');
+    debugPrint('✅ AuthService inicializado');
 
     await Get.putAsync(() => OfflineStorageService().init());
-    debugPrint('  OfflineStorageService inicializado');
+    debugPrint('✅ OfflineStorageService inicializado');
 
     await Get.putAsync(() => LocationService().init());
-    debugPrint('  LocationService inicializado');
+    debugPrint('✅ LocationService inicializado');
 
-    await Get.putAsync(() => WebSocketService().init());
-    debugPrint('  WebSocketService inicializado');
+    // WebSocket - no crítico, puede fallar sin detener la app
+    try {
+      await Get.putAsync(() => WebSocketService().init()).timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          debugPrint('⏱️ WebSocket timeout, creando instancia desconectada');
+          return Get.put(WebSocketService());
+        },
+      );
+      debugPrint('✅ WebSocketService inicializado');
+    } catch (e) {
+      debugPrint('⚠️ WebSocketService no disponible: $e');
+      // Crear instancia desconectada para evitar errores al acceder
+      Get.put(WebSocketService());
+    }
 
     await _initFMTC();
     debugPrint('✅ FMTC listo');
 
     Get.put(ThemeController());
-    debugPrint('  ThemeController inicializado');
+    debugPrint('✅ ThemeController inicializado');
 
     debugPrint('✅ Todos los servicios inicializados correctamente');
   } catch (e, st) {

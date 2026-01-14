@@ -5,6 +5,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:sumajflow_movil/core/config/tracking_config.dart';
+import 'package:sumajflow_movil/core/exceptions/network_exception.dart';
 import 'package:sumajflow_movil/core/services/location_service.dart';
 import 'package:sumajflow_movil/core/services/offline_storage_service.dart';
 import 'package:sumajflow_movil/data/models/tracking_models.dart';
@@ -82,7 +83,6 @@ class TrackingController extends GetxController {
       hasGpsIssue.value = false;
 
       // Iniciar stream de ubicación en tiempo real
-      // 👇 MODIFICADO: Sin timeLimit para evitar TimeoutException
       _positionStreamSubscription =
           Geolocator.getPositionStream(
             locationSettings: const LocationSettings(
@@ -249,22 +249,16 @@ class TrackingController extends GetxController {
     if (!isActive.value || isPaused.value) return;
 
     try {
-      final response = await _trackingRepository
-          .actualizarUbicacion(
-            asignacionCamionId: asignacionId,
-            lat: position.latitude,
-            lng: position.longitude,
-            precision: position.accuracy,
-            velocidad: position.speed * 3.6,
-            rumbo: position.heading,
-            altitud: position.altitude,
-            timestampCaptura: DateTime.now(),
-          )
-          .timeout(
-            const Duration(seconds: 5),
-            onTimeout: () =>
-                throw TimeoutException('Timeout al enviar ubicación'),
-          );
+      final response = await _trackingRepository.actualizarUbicacion(
+        asignacionCamionId: asignacionId,
+        lat: position.latitude,
+        lng: position.longitude,
+        precision: position.accuracy,
+        velocidad: position.speed * 3.6,
+        rumbo: position.heading,
+        altitud: position.altitude,
+        timestampCaptura: DateTime.now(),
+      );
 
       if (response.success) {
         if (!isOnline.value) {
@@ -272,9 +266,17 @@ class TrackingController extends GetxController {
         }
         isOnline.value = true;
       }
-    } catch (e) {
+    } on NetworkException catch (e) {
+      // Error de red esperado - no loguear si ya estamos offline
       if (isOnline.value) {
-        debugPrint('🔴 Desconectado del backend: $e');
+        debugPrint('🔴 Desconectado del backend: ${e.type}');
+      }
+      isOnline.value = false;
+      await _guardarUbicacionOffline(position);
+    } catch (e) {
+      // Otros errores
+      if (isOnline.value) {
+        debugPrint('⚠️ Error inesperado al enviar ubicación: $e');
       }
       isOnline.value = false;
       await _guardarUbicacionOffline(position);
@@ -305,13 +307,10 @@ class TrackingController extends GetxController {
     if (!isActive.value || isPaused.value) return;
 
     try {
-      // 👇 MODIFICADO: Usar timeout más largo para evitar fallos
       final position = await _locationService.getCurrentPosition().timeout(
-        const Duration(seconds: 15),
+        const Duration(seconds: 10),
         onTimeout: () {
-          debugPrint(
-            '⏱️ Timeout en getCurrentPosition, usando última posición conocida',
-          );
+          // Timeout silencioso - usar última posición
           return null;
         },
       );
@@ -320,18 +319,15 @@ class TrackingController extends GetxController {
         _onLocationUpdate(position);
       } else if (currentPosition.value != null) {
         // Si no hay nueva posición pero tenemos una anterior, guardarla offline
-        debugPrint('📍 Usando última posición conocida');
         await _guardarUbicacionOffline();
       }
     } catch (e) {
-      debugPrint('⚠️ Error en actualización manual: $e');
-      // Intentar guardar última posición conocida
+      // Error silencioso - no detener el tracking
       if (currentPosition.value != null) {
         await _guardarUbicacionOffline();
       }
     }
   }
-
   // ============================================================
   // CONECTIVIDAD Y SYNC
   // ============================================================
@@ -378,29 +374,29 @@ class TrackingController extends GetxController {
       }
 
       debugPrint(
-        '🔄 Sincronizando ${ubicacionesPendientes.length} ubicaciones pendientes...',
+        '🔄 Sincronizando ${ubicacionesPendientes.length} ubicaciones...',
       );
 
-      await _trackingRepository
-          .sincronizarUbicaciones(
-            asignacionCamionId: asignacionId,
-            ubicaciones: ubicacionesPendientes,
-          )
-          .timeout(
-            const Duration(seconds: 10),
-            onTimeout: () =>
-                throw TimeoutException('Timeout en sincronización'),
-          );
-
-      await _offlineStorage.markLocationsSynced(
-        asignacionId,
-        ubicacionesPendientes.length,
+      final response = await _trackingRepository.sincronizarUbicaciones(
+        asignacionCamionId: asignacionId,
+        ubicaciones: ubicacionesPendientes,
       );
 
-      debugPrint('✅ Sincronización completada');
-    } catch (e) {
-      debugPrint('❌ Error al sincronizar: $e');
+      if (response.success && response.ubicacionesSincronizadas > 0) {
+        await _offlineStorage.markLocationsSynced(
+          asignacionId,
+          response.ubicacionesSincronizadas,
+        );
+        debugPrint(
+          '✅ ${response.ubicacionesSincronizadas} ubicaciones sincronizadas',
+        );
+      }
+    } on NetworkException catch (e) {
+      // Error de red - detener sincronización
+      debugPrint('📴 Error de red en sincronización: ${e.type}');
       isOnline.value = false;
+    } catch (e) {
+      debugPrint('⚠️ Error al sincronizar: $e');
     }
   }
 
