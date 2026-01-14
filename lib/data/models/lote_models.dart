@@ -1,9 +1,6 @@
 // lib/data/models/lote_models.dart
 
 /// Modelo para lote asignado (resumen para lista)
-// lib/data/models/lote_models.dart
-
-/// Modelo para lote asignado (resumen para lista)
 class LoteAsignadoModel {
   final int asignacionId;
   final int loteId;

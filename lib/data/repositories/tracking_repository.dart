@@ -60,6 +60,7 @@ class TrackingRepository {
     double? rumbo,
     double? altitud,
     DateTime? timestampCaptura,
+    bool esOffline = false,
   }) async {
     try {
       final response = await _dio.post(
@@ -74,7 +75,7 @@ class TrackingRepository {
           if (altitud != null) 'altitud': altitud,
           'timestampCaptura': (timestampCaptura ?? DateTime.now())
               .toIso8601String(),
-          'esOffline': false,
+          'esOffline': esOffline,
         },
       );
 
@@ -90,10 +91,8 @@ class TrackingRepository {
         type: NetworkExceptionType.serverError,
       );
     } on DioException catch (e) {
-      // Convertir DioException a NetworkException
       throw _handleDioError(e);
     } catch (e) {
-      // Cualquier otra excepción se convierte a NetworkException
       if (e is NetworkException) rethrow;
       throw NetworkException(
         'Error inesperado al actualizar ubicación',

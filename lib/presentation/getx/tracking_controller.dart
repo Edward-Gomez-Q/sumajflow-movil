@@ -27,7 +27,8 @@ class TrackingController extends GetxController {
   final isActive = false.obs;
   final isPaused = false.obs;
   final lastUpdateTime = Rxn<DateTime>();
-  final hasGpsIssue = false.obs; // 👈 NUEVO: Indica problemas con GPS
+  final hasGpsIssue = false.obs;
+  final wasOfflineLastUpdate = false.obs;
 
   // Timers
   Timer? _locationUpdateTimer;
@@ -248,6 +249,12 @@ class TrackingController extends GetxController {
   Future<void> _enviarUbicacionAlBackend(Position position) async {
     if (!isActive.value || isPaused.value) return;
 
+    final capturoOffline = !isOnline.value;
+
+    if (capturoOffline) {
+      debugPrint('📴 Enviando ubicación capturada mientras estaba offline');
+    }
+
     try {
       final response = await _trackingRepository.actualizarUbicacion(
         asignacionCamionId: asignacionId,
@@ -258,6 +265,7 @@ class TrackingController extends GetxController {
         rumbo: position.heading,
         altitud: position.altitude,
         timestampCaptura: DateTime.now(),
+        esOffline: capturoOffline,
       );
 
       if (response.success) {
@@ -265,6 +273,7 @@ class TrackingController extends GetxController {
           debugPrint('🟢 Reconectado al backend');
         }
         isOnline.value = true;
+        wasOfflineLastUpdate.value = false;
       }
     } on NetworkException catch (e) {
       // Error de red esperado - no loguear si ya estamos offline
@@ -272,6 +281,7 @@ class TrackingController extends GetxController {
         debugPrint('🔴 Desconectado del backend: ${e.type}');
       }
       isOnline.value = false;
+      wasOfflineLastUpdate.value = true;
       await _guardarUbicacionOffline(position);
     } catch (e) {
       // Otros errores
@@ -279,6 +289,7 @@ class TrackingController extends GetxController {
         debugPrint('⚠️ Error inesperado al enviar ubicación: $e');
       }
       isOnline.value = false;
+      wasOfflineLastUpdate.value = true;
       await _guardarUbicacionOffline(position);
     }
   }
@@ -298,8 +309,12 @@ class TrackingController extends GetxController {
     );
 
     await _offlineStorage.saveLocationOffline(asignacionId, ubicacionOffline);
+    final pendientes = _offlineStorage.totalPendingLocations;
     debugPrint(
-      '💾 Ubicación guardada offline (${_offlineStorage.totalPendingLocations} pendientes)',
+      '💾 Ubicación guardada offline\n'
+      '   📍 Lat: ${pos.latitude.toStringAsFixed(6)}, Lng: ${pos.longitude.toStringAsFixed(6)}\n'
+      '   ⏰ ${DateTime.now().toString()}\n'
+      '   📦 Total pendientes: $pendientes',
     );
   }
 
@@ -374,7 +389,9 @@ class TrackingController extends GetxController {
       }
 
       debugPrint(
-        '🔄 Sincronizando ${ubicacionesPendientes.length} ubicaciones...',
+        '🔄 Iniciando sincronización offline\n'
+        '   📦 Ubicaciones pendientes: ${ubicacionesPendientes.length}\n'
+        '   🕐 Rango: ${ubicacionesPendientes.first.timestamp} a ${ubicacionesPendientes.last.timestamp}',
       );
 
       final response = await _trackingRepository.sincronizarUbicaciones(
@@ -388,11 +405,13 @@ class TrackingController extends GetxController {
           response.ubicacionesSincronizadas,
         );
         debugPrint(
-          '✅ ${response.ubicacionesSincronizadas} ubicaciones sincronizadas',
+          '✅ Sincronización completada\n'
+          '   ✔️ Exitosas: ${response.ubicacionesSincronizadas}\n'
+          '   ❌ Fallidas: ${response.ubicacionesFallidas}\n'
+          '   📦 Pendientes restantes: ${_offlineStorage.totalPendingLocations}',
         );
       }
     } on NetworkException catch (e) {
-      // Error de red - detener sincronización
       debugPrint('📴 Error de red en sincronización: ${e.type}');
       isOnline.value = false;
     } catch (e) {
