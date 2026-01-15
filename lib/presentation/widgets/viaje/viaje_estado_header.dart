@@ -19,7 +19,7 @@ class ViajeEstadoHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final color = _hexToColor(estado.colorHex);
+    final color = estado.color;
 
     if (compacto) {
       return _buildCompacto(theme, color);
@@ -74,7 +74,7 @@ class ViajeEstadoHeader extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      estado.textoCorto,
+                      estado.displayName,
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: color,
@@ -156,7 +156,7 @@ class ViajeEstadoHeader extends StatelessWidget {
           Text(estado.emoji, style: const TextStyle(fontSize: 14)),
           const SizedBox(width: 6),
           Text(
-            estado.textoCorto,
+            estado.displayName, // ✅ Usar displayName del enum
             style: const TextStyle(
               color: Colors.white,
               fontSize: 12,
@@ -166,12 +166,5 @@ class ViajeEstadoHeader extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  Color _hexToColor(String hexString) {
-    final buffer = StringBuffer();
-    if (hexString.length == 6 || hexString.length == 7) buffer.write('ff');
-    buffer.write(hexString.replaceFirst('#', ''));
-    return Color(int.parse(buffer.toString(), radix: 16));
   }
 }

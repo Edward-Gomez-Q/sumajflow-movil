@@ -1,261 +1,157 @@
 // lib/data/enums/estado_viaje.dart
 
-/// Estados posibles de un viaje/asignación de camión
+import 'package:flutter/material.dart';
+
+/// Estados del viaje sincronizados con el backend
+/// Representa el flujo completo de 8 pasos del transporte
 enum EstadoViaje {
-  esperandoIniciar('Esperando iniciar'),
-  enCaminoMina('En camino a la mina'),
-  esperandoCarguio('Esperando carguío'),
-  cargandoMineral('Cargando mineral'),
-  carguioCompletado('Carguío completado'),
-  enCaminoBalanzaCoop('En camino balanza cooperativa'),
-  pesajeBalanzaCoop('Pesaje balanza cooperativa'),
-  enCaminoBalanzaDestino('En camino balanza destino'),
-  pesajeBalanzaDestino('Pesaje balanza destino'),
-  rutaCompletada('Ruta completada'),
-  descargando('Descargando'),
-  completado('Completado'),
-  cancelado('Cancelado por rechazo');
+  // PASO 1: Estado inicial
+  esperandoIniciar('Esperando iniciar', 0.0),
+
+  // PASO 2: En ruta hacia la mina
+  enCaminoMina('En camino a la mina', 0.125),
+
+  // PASO 3: Llegó a la mina, esperando carguío
+  esperandoCarguio('Esperando carguío', 0.25),
+
+  // PASO 4: En ruta a balanza cooperativa
+  enCaminoBalanzaCoop('En camino balanza cooperativa', 0.375),
+
+  // PASO 5: En ruta a balanza destino
+  enCaminoBalanzaDestino('En camino balanza destino', 0.5),
+
+  // PASO 6: En ruta a almacén destino
+  enCaminoAlmacenDestino('En camino almacén destino', 0.625),
+
+  // PASO 7: Descargando en almacén
+  descargando('Descargando', 0.75),
+
+  // PASO 8: Viaje completado
+  completado('Completado', 1.0);
 
   final String valor;
-  const EstadoViaje(this.valor);
+  final double progreso;
 
-  /// Obtiene el estado desde un string del backend
-  static EstadoViaje fromString(String valor) {
-    return EstadoViaje.values.firstWhere(
-      (e) => e.valor.toLowerCase() == valor.toLowerCase(),
-      orElse: () => EstadoViaje.esperandoIniciar,
-    );
-  }
+  const EstadoViaje(this.valor, this.progreso);
 
-  /// Verifica si es un estado de "en camino"
-  bool get esEnCamino => [
-    EstadoViaje.enCaminoMina,
-    EstadoViaje.enCaminoBalanzaCoop,
-    EstadoViaje.enCaminoBalanzaDestino,
-  ].contains(this);
-
-  /// Verifica si es un estado de pesaje
-  bool get esPesaje => [
-    EstadoViaje.pesajeBalanzaCoop,
-    EstadoViaje.pesajeBalanzaDestino,
-  ].contains(this);
-
-  /// Verifica si el viaje está activo (no completado ni cancelado)
-  bool get estaActivo =>
-      ![EstadoViaje.completado, EstadoViaje.cancelado].contains(this);
-
-  /// Obtiene el color asociado al estado (hex)
-  String get colorHex {
-    switch (this) {
-      case EstadoViaje.esperandoIniciar:
-        return '#F59E0B'; // Amber
-      case EstadoViaje.enCaminoMina:
-      case EstadoViaje.enCaminoBalanzaCoop:
-      case EstadoViaje.enCaminoBalanzaDestino:
-        return '#3B82F6'; // Blue
-      case EstadoViaje.esperandoCarguio:
-        return '#8B5CF6'; // Purple
-      case EstadoViaje.cargandoMineral:
-        return '#F97316'; // Orange
-      case EstadoViaje.carguioCompletado:
-        return '#10B981'; // Green
-      case EstadoViaje.pesajeBalanzaCoop:
-      case EstadoViaje.pesajeBalanzaDestino:
-        return '#06B6D4'; // Cyan
-      case EstadoViaje.rutaCompletada:
-        return '#8B5CF6'; // Purple
-      case EstadoViaje.descargando:
-        return '#EC4899'; // Pink
-      case EstadoViaje.completado:
-        return '#10B981'; // Green
-      case EstadoViaje.cancelado:
-        return '#EF4444'; // Red
+  /// Convierte string del backend a enum
+  static EstadoViaje fromString(String estado) {
+    switch (estado) {
+      case 'Esperando iniciar':
+        return EstadoViaje.esperandoIniciar;
+      case 'En camino a la mina':
+        return EstadoViaje.enCaminoMina;
+      case 'Esperando carguío':
+        return EstadoViaje.esperandoCarguio;
+      case 'En camino balanza cooperativa':
+        return EstadoViaje.enCaminoBalanzaCoop;
+      case 'En camino balanza destino':
+        return EstadoViaje.enCaminoBalanzaDestino;
+      case 'En camino almacén destino':
+        return EstadoViaje.enCaminoAlmacenDestino;
+      case 'Descargando':
+        return EstadoViaje.descargando;
+      case 'Completado':
+        return EstadoViaje.completado;
+      default:
+        throw Exception('Estado no reconocido: $estado');
     }
   }
 
-  /// Obtiene el emoji/icono asociado
-  String get emoji {
+  /// Nombre para mostrar en UI
+  String get displayName {
     switch (this) {
       case EstadoViaje.esperandoIniciar:
-        return '🚀';
+        return 'Listo para iniciar';
       case EstadoViaje.enCaminoMina:
-        return '🚛';
+        return 'En camino a mina';
       case EstadoViaje.esperandoCarguio:
-        return '⏳';
-      case EstadoViaje.cargandoMineral:
-        return '⛏️';
-      case EstadoViaje.carguioCompletado:
-        return '✅';
+        return 'Esperando carguío';
       case EstadoViaje.enCaminoBalanzaCoop:
+        return 'Hacia balanza cooperativa';
       case EstadoViaje.enCaminoBalanzaDestino:
-        return '🚛';
-      case EstadoViaje.pesajeBalanzaCoop:
-      case EstadoViaje.pesajeBalanzaDestino:
-        return '⚖️';
-      case EstadoViaje.rutaCompletada:
-        return '🎯';
-      case EstadoViaje.descargando:
-        return '📦';
-      case EstadoViaje.completado:
-        return '🏆';
-      case EstadoViaje.cancelado:
-        return '❌';
-    }
-  }
-
-  /// Obtiene el texto corto para mostrar en chips/badges
-  String get textoCorto {
-    switch (this) {
-      case EstadoViaje.esperandoIniciar:
-        return 'Pendiente';
-      case EstadoViaje.enCaminoMina:
-        return 'A la mina';
-      case EstadoViaje.esperandoCarguio:
-        return 'En turno';
-      case EstadoViaje.cargandoMineral:
-        return 'Cargando';
-      case EstadoViaje.carguioCompletado:
-        return 'Cargado';
-      case EstadoViaje.enCaminoBalanzaCoop:
-        return 'A balanza coop';
-      case EstadoViaje.pesajeBalanzaCoop:
-        return 'Pesaje coop';
-      case EstadoViaje.enCaminoBalanzaDestino:
-        return 'A balanza dest';
-      case EstadoViaje.pesajeBalanzaDestino:
-        return 'Pesaje dest';
-      case EstadoViaje.rutaCompletada:
-        return 'En destino';
+        return 'Hacia balanza destino';
+      case EstadoViaje.enCaminoAlmacenDestino:
+        return 'Hacia almacén';
       case EstadoViaje.descargando:
         return 'Descargando';
       case EstadoViaje.completado:
         return 'Completado';
-      case EstadoViaje.cancelado:
-        return 'Cancelado';
     }
   }
 
-  /// Obtiene el siguiente estado esperado
-  EstadoViaje? get siguienteEstado {
+  /// Emoji representativo
+  String get emoji {
     switch (this) {
       case EstadoViaje.esperandoIniciar:
-        return EstadoViaje.enCaminoMina;
+        return '🚦';
       case EstadoViaje.enCaminoMina:
-        return EstadoViaje.esperandoCarguio;
+        return '🚛';
       case EstadoViaje.esperandoCarguio:
-        return EstadoViaje.cargandoMineral;
-      case EstadoViaje.cargandoMineral:
-        return EstadoViaje.carguioCompletado;
-      case EstadoViaje.carguioCompletado:
-        return EstadoViaje.enCaminoBalanzaCoop;
+        return '⏳';
       case EstadoViaje.enCaminoBalanzaCoop:
-        return EstadoViaje.pesajeBalanzaCoop;
-      case EstadoViaje.pesajeBalanzaCoop:
-        return EstadoViaje.enCaminoBalanzaDestino;
+        return '🚚';
       case EstadoViaje.enCaminoBalanzaDestino:
-        return EstadoViaje.pesajeBalanzaDestino;
-      case EstadoViaje.pesajeBalanzaDestino:
-        return EstadoViaje.rutaCompletada;
-      case EstadoViaje.rutaCompletada:
-        return EstadoViaje.descargando;
+        return '🚚';
+      case EstadoViaje.enCaminoAlmacenDestino:
+        return '🚚';
       case EstadoViaje.descargando:
-        return EstadoViaje.completado;
+        return '📦';
       case EstadoViaje.completado:
-      case EstadoViaje.cancelado:
-        return null;
+        return '✅';
     }
   }
 
-  /// Obtiene el progreso del viaje (0.0 a 1.0)
-  double get progreso {
+  /// Color principal del estado
+  Color get color {
     switch (this) {
       case EstadoViaje.esperandoIniciar:
-        return 0.0;
+        return const Color(0xFF3B82F6); // Azul
       case EstadoViaje.enCaminoMina:
-        return 0.08;
+        return const Color(0xFF8B5CF6); // Morado
       case EstadoViaje.esperandoCarguio:
-        return 0.17;
-      case EstadoViaje.cargandoMineral:
-        return 0.25;
-      case EstadoViaje.carguioCompletado:
-        return 0.33;
+        return const Color(0xFFF59E0B); // Amarillo
       case EstadoViaje.enCaminoBalanzaCoop:
-        return 0.42;
-      case EstadoViaje.pesajeBalanzaCoop:
-        return 0.50;
+        return const Color(0xFF06B6D4); // Cyan
       case EstadoViaje.enCaminoBalanzaDestino:
-        return 0.58;
-      case EstadoViaje.pesajeBalanzaDestino:
-        return 0.67;
-      case EstadoViaje.rutaCompletada:
-        return 0.75;
+        return const Color(0xFF06B6D4); // Cyan
+      case EstadoViaje.enCaminoAlmacenDestino:
+        return const Color(0xFF10B981); // Verde
       case EstadoViaje.descargando:
-        return 0.92;
+        return const Color(0xFFEC4899); // Rosa
       case EstadoViaje.completado:
-        return 1.0;
-      case EstadoViaje.cancelado:
-        return 0.0;
+        return const Color(0xFF10B981); // Verde
     }
   }
-}
 
-/// Tipos de eventos que se pueden registrar
-enum TipoEvento {
-  inicioViaje('inicio_viaje'),
-  llegadaMina('llegada_mina'),
-  inicioCarguio('inicio_carguio'),
-  finCarguio('fin_carguio'),
-  salidaMina('salida_mina'),
-  llegadaBalanzaCoop('llegada_balanza_coop'),
-  pesajeBalanzaCoop('pesaje_balanza_coop'),
-  llegadaBalanzaDestino('llegada_balanza_destino'),
-  pesajeBalanzaDestino('pesaje_balanza_destino'),
-  llegadaAlmacen('llegada_almacen'),
-  finDescarga('fin_descarga');
-
-  final String valor;
-  const TipoEvento(this.valor);
-
-  static TipoEvento fromString(String valor) {
-    return TipoEvento.values.firstWhere(
-      (e) => e.valor == valor,
-      orElse: () => TipoEvento.inicioViaje,
-    );
+  /// Indica si el estado es de movimiento/en camino
+  bool get esEstadoEnCamino {
+    return this == EstadoViaje.enCaminoMina ||
+        this == EstadoViaje.enCaminoBalanzaCoop ||
+        this == EstadoViaje.enCaminoBalanzaDestino ||
+        this == EstadoViaje.enCaminoAlmacenDestino;
   }
 
-  /// Indica si este evento requiere evidencia fotográfica obligatoria
-  bool get requiereEvidencia => [
-    TipoEvento.finCarguio,
-    TipoEvento.pesajeBalanzaCoop,
-    TipoEvento.pesajeBalanzaDestino,
-    TipoEvento.finDescarga,
-  ].contains(this);
+  /// Indica si requiere estar dentro del geofence para continuar
+  bool get requiereGeofence {
+    return esEstadoEnCamino;
+  }
 
-  /// Obtiene el título legible del evento
-  String get titulo {
-    switch (this) {
-      case TipoEvento.inicioViaje:
-        return 'Inicio de viaje';
-      case TipoEvento.llegadaMina:
-        return 'Llegada a mina';
-      case TipoEvento.inicioCarguio:
-        return 'Inicio de carguío';
-      case TipoEvento.finCarguio:
-        return 'Fin de carguío';
-      case TipoEvento.salidaMina:
-        return 'Salida de mina';
-      case TipoEvento.llegadaBalanzaCoop:
-        return 'Llegada a balanza cooperativa';
-      case TipoEvento.pesajeBalanzaCoop:
-        return 'Pesaje en balanza cooperativa';
-      case TipoEvento.llegadaBalanzaDestino:
-        return 'Llegada a balanza destino';
-      case TipoEvento.pesajeBalanzaDestino:
-        return 'Pesaje en balanza destino';
-      case TipoEvento.llegadaAlmacen:
-        return 'Llegada a almacén';
-      case TipoEvento.finDescarga:
-        return 'Fin de descarga';
-    }
+  /// Indica si el viaje está activo
+  bool get viajeActivo {
+    return this != EstadoViaje.esperandoIniciar &&
+        this != EstadoViaje.completado;
+  }
+
+  /// Indica si el estado requiere evidencias fotográficas
+  bool get requiereEvidencia {
+    return this == EstadoViaje.esperandoCarguio ||
+        this == EstadoViaje.descargando;
+  }
+
+  /// Indica si el estado requiere datos de pesaje
+  bool get requierePesaje {
+    return this == EstadoViaje.enCaminoBalanzaCoop ||
+        this == EstadoViaje.enCaminoBalanzaDestino;
   }
 }

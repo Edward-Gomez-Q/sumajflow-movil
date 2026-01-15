@@ -28,7 +28,7 @@ class ViajeBottomPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colorEstado = _hexToColor(estado.colorHex);
+    final colorEstado = estado.color;
 
     return Container(
       decoration: BoxDecoration(

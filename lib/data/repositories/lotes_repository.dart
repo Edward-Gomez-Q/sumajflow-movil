@@ -54,7 +54,7 @@ class LotesRepository {
       debugPrint('📋 Obteniendo lotes con filtro: $filtro');
 
       final response = await _dio.get(
-        '/transportista/mis-lotes',
+        '/transportista/lotes',
         queryParameters: {'filtro': filtro},
       );
 
@@ -79,16 +79,14 @@ class LotesRepository {
     }
   }
 
-  /// Obtiene el detalle de un lote para iniciar viaje
+  /// Obtiene el detalle de un lote
   Future<LoteDetalleViajeModel> getDetalleLote(int asignacionId) async {
     try {
       debugPrint(
         '📋 Obteniendo detalle del lote con asignacionId: $asignacionId',
       );
 
-      final response = await _dio.get(
-        '/transportista/lote/$asignacionId/detalle',
-      );
+      final response = await _dio.get('/transportista/lotes/$asignacionId');
 
       debugPrint('📊 Response status: ${response.statusCode}');
       debugPrint('📊 Response data: ${response.data}');

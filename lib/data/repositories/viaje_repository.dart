@@ -9,7 +9,7 @@ import 'package:sumajflow_movil/data/providers/api_provider.dart';
 import 'package:flutter/rendering.dart';
 
 /// Repositorio para gestionar eventos del viaje operativo
-/// Usa los endpoints existentes del backend: /transportista/viaje/{id}/...
+/// Endpoints: /api/transportista/viaje/{asignacionId}/*
 class ViajeRepository {
   late final Dio _dio;
   final ApiProvider _apiProvider = ApiProvider();
@@ -47,15 +47,13 @@ class ViajeRepository {
               error.type != DioExceptionType.sendTimeout) {
             debugPrint('❌ DioError: ${error.type}');
           }
-
-          // IMPORTANTE: usar reject, no next
           return handler.reject(error);
         },
       ),
     );
   }
 
-  // ==================== INICIO DE VIAJE ====================
+  // ==================== PASO 1: INICIAR VIAJE ====================
 
   /// POST /transportista/viaje/{asignacionId}/iniciar
   /// Transición: Esperando iniciar → En camino a la mina
@@ -66,23 +64,20 @@ class ViajeRepository {
     String? observaciones,
   }) async {
     try {
-      debugPrint('🚀 Iniciando viaje para asignacionId: $asignacionId');
+      debugPrint('🚀 POST /transportista/viaje/$asignacionId/iniciar');
 
       final response = await _dio.post(
         '/transportista/viaje/$asignacionId/iniciar',
         data: {
           'lat': lat,
           'lng': lng,
-          if (observaciones != null) 'observaciones': observaciones,
+          if (observaciones != null && observaciones.isNotEmpty)
+            'observaciones': observaciones,
         },
       );
 
-      if (response.statusCode == 200 && response.data['success'] == true) {
-        debugPrint('✅ Viaje iniciado exitosamente');
-        return TransicionEstadoResponse.fromJson(response.data);
-      }
-
-      throw Exception(response.data['message'] ?? 'Error al iniciar viaje');
+      debugPrint('✅ Viaje iniciado exitosamente');
+      return TransicionEstadoResponse.fromJson(response.data);
     } on DioException catch (e) {
       debugPrint('❌ DioException en iniciarViaje: ${e.type}');
       throw _handleDioError(e, 'iniciar viaje');
@@ -93,7 +88,7 @@ class ViajeRepository {
     }
   }
 
-  // ==================== LLEGADA A MINA ====================
+  // ==================== PASO 2: LLEGADA A MINA ====================
 
   /// POST /transportista/viaje/{asignacionId}/llegada-mina
   /// Transición: En camino a la mina → Esperando carguío
@@ -101,38 +96,30 @@ class ViajeRepository {
     required int asignacionId,
     required double lat,
     required double lng,
+    required bool palaOperativa,
+    required bool mineralVisible,
     String? observaciones,
-    List<String>? fotosUrls,
-    bool? palaOperativa,
-    bool? mineralVisible,
-    bool? espacioParaCarga,
+    String? fotoReferenciaUrl,
   }) async {
     try {
-      debugPrint(
-        '📍 Confirmando llegada a mina para asignacionId: $asignacionId',
-      );
+      debugPrint('🏔️ POST /viaje/$asignacionId/llegada-mina');
 
       final response = await _dio.post(
         '/transportista/viaje/$asignacionId/llegada-mina',
         data: {
           'lat': lat,
           'lng': lng,
-          if (observaciones != null) 'observaciones': observaciones,
-          if (fotosUrls != null && fotosUrls.isNotEmpty) 'fotosUrls': fotosUrls,
-          if (palaOperativa != null) 'palaOperativa': palaOperativa,
-          if (mineralVisible != null) 'mineralVisible': mineralVisible,
-          if (espacioParaCarga != null) 'espacioParaCarga': espacioParaCarga,
+          'palaOperativa': palaOperativa,
+          'mineralVisible': mineralVisible,
+          if (observaciones != null && observaciones.isNotEmpty)
+            'observaciones': observaciones,
+          if (fotoReferenciaUrl != null && fotoReferenciaUrl.isNotEmpty)
+            'fotoReferenciaUrl': fotoReferenciaUrl,
         },
       );
 
-      if (response.statusCode == 200 && response.data['success'] == true) {
-        debugPrint('✅ Llegada a mina confirmada');
-        return TransicionEstadoResponse.fromJson(response.data);
-      }
-
-      throw Exception(
-        response.data['message'] ?? 'Error al confirmar llegada a mina',
-      );
+      debugPrint('✅ Llegada a mina confirmada');
+      return TransicionEstadoResponse.fromJson(response.data);
     } on DioException catch (e) {
       debugPrint('❌ DioException en confirmarLlegadaMina: ${e.type}');
       throw _handleDioError(e, 'confirmar llegada a mina');
@@ -143,38 +130,36 @@ class ViajeRepository {
     }
   }
 
-  // ==================== CARGUÍO ====================
+  // ==================== PASO 3: CARGUÍO ====================
 
-  /// POST /transportista/viaje/{asignacionId}/confirmar-carguio
+  /// POST /transportista/viaje/{asignacionId}/carguio
   /// Transición: Esperando carguío → En camino balanza cooperativa
   Future<TransicionEstadoResponse> confirmarCarguio({
     required int asignacionId,
     required double lat,
     required double lng,
+    required bool mineralCargadoCompletamente,
     String? observaciones,
-    List<String>? fotosUrls,
-    double? pesoEstimadoKg,
+    String? fotoCamionCargadoUrl,
   }) async {
     try {
-      debugPrint('⚖️ Confirmando carguío para asignacionId: $asignacionId');
+      debugPrint('🚛 POST /viaje/$asignacionId/carguio');
 
       final response = await _dio.post(
-        '/transportista/viaje/$asignacionId/confirmar-carguio',
+        '/transportista/viaje/$asignacionId/carguio',
         data: {
           'lat': lat,
           'lng': lng,
-          if (observaciones != null) 'observaciones': observaciones,
-          if (fotosUrls != null && fotosUrls.isNotEmpty) 'fotosUrls': fotosUrls,
-          if (pesoEstimadoKg != null) 'pesoEstimadoKg': pesoEstimadoKg,
+          'mineralCargadoCompletamente': mineralCargadoCompletamente,
+          if (observaciones != null && observaciones.isNotEmpty)
+            'observaciones': observaciones,
+          if (fotoCamionCargadoUrl != null && fotoCamionCargadoUrl.isNotEmpty)
+            'fotoCamionCargadoUrl': fotoCamionCargadoUrl,
         },
       );
 
-      if (response.statusCode == 200 && response.data['success'] == true) {
-        debugPrint('✅ Carguío confirmado');
-        return TransicionEstadoResponse.fromJson(response.data);
-      }
-
-      throw Exception(response.data['message'] ?? 'Error al confirmar carguío');
+      debugPrint('✅ Carguío confirmado');
+      return TransicionEstadoResponse.fromJson(response.data);
     } on DioException catch (e) {
       debugPrint('❌ DioException en confirmarCarguio: ${e.type}');
       throw _handleDioError(e, 'confirmar carguío');
@@ -185,117 +170,155 @@ class ViajeRepository {
     }
   }
 
-  // ==================== PESAJE ====================
+  // ==================== PASO 4: PESAJE COOPERATIVA ====================
 
-  /// POST /transportista/viaje/{asignacionId}/registrar-pesaje
-  /// Transiciones:
-  /// - En camino balanza cooperativa → En camino balanza destino (tipoPesaje: "cooperativa")
-  /// - En camino balanza destino → En camino almacén destino (tipoPesaje: "destino")
-  Future<TransicionEstadoResponse> registrarPesaje({
+  /// POST /transportista/viaje/{asignacionId}/pesaje-cooperativa
+  /// Transición: En camino balanza cooperativa → En camino balanza destino
+  Future<TransicionEstadoResponse> registrarPesajeCooperativa({
     required int asignacionId,
-    required String tipoPesaje,
+    required double lat,
+    required double lng,
     required double pesoBrutoKg,
     required double pesoTaraKg,
     String? observaciones,
     String? ticketPesajeUrl,
   }) async {
     try {
-      debugPrint(
-        '⚖️ Registrando pesaje $tipoPesaje para asignacionId: $asignacionId',
-      );
+      debugPrint('⚖️ POST /viaje/$asignacionId/pesaje-cooperativa');
 
       final response = await _dio.post(
-        '/transportista/viaje/$asignacionId/registrar-pesaje',
+        '/transportista/viaje/$asignacionId/pesaje-cooperativa',
         data: {
-          'tipoPesaje': tipoPesaje,
+          'lat': lat,
+          'lng': lng,
           'pesoBrutoKg': pesoBrutoKg,
           'pesoTaraKg': pesoTaraKg,
-          if (observaciones != null) 'observaciones': observaciones,
-          if (ticketPesajeUrl != null) 'ticketPesajeUrl': ticketPesajeUrl,
+          'tipoPesaje':
+              'cooperativa', // Se setea en el backend pero lo incluimos
+          if (observaciones != null && observaciones.isNotEmpty)
+            'observaciones': observaciones,
+          if (ticketPesajeUrl != null && ticketPesajeUrl.isNotEmpty)
+            'ticketPesajeUrl': ticketPesajeUrl,
         },
       );
 
-      if (response.statusCode == 200 && response.data['success'] == true) {
-        debugPrint('✅ Pesaje registrado');
-        return TransicionEstadoResponse.fromJson(response.data);
-      }
-
-      throw Exception(response.data['message'] ?? 'Error al registrar pesaje');
+      debugPrint('✅ Pesaje cooperativa registrado');
+      return TransicionEstadoResponse.fromJson(response.data);
     } on DioException catch (e) {
-      debugPrint('❌ DioException en registrarPesaje: ${e.type}');
-      throw _handleDioError(e, 'registrar pesaje');
+      debugPrint('❌ DioException en registrarPesajeCooperativa: ${e.type}');
+      throw _handleDioError(e, 'registrar pesaje cooperativa');
     } catch (e) {
-      debugPrint('❌ Exception en registrarPesaje: $e');
+      debugPrint('❌ Exception en registrarPesajeCooperativa: $e');
       if (e is NetworkException) rethrow;
       throw Exception('Error inesperado: $e');
     }
   }
 
-  // ==================== DESCARGA ====================
+  // ==================== PASO 5: PESAJE DESTINO ====================
 
-  /// POST /transportista/viaje/{asignacionId}/iniciar-descarga
-  /// Transición: En camino almacén destino → Descargando
-  Future<TransicionEstadoResponse> iniciarDescarga({
+  /// POST /transportista/viaje/{asignacionId}/pesaje-destino
+  /// Transición: En camino balanza destino → En camino almacén destino
+  Future<TransicionEstadoResponse> registrarPesajeDestino({
     required int asignacionId,
     required double lat,
     required double lng,
+    required double pesoBrutoKg,
+    required double pesoTaraKg,
+    String? observaciones,
+    String? ticketPesajeUrl,
   }) async {
     try {
-      debugPrint('📦 Iniciando descarga para asignacionId: $asignacionId');
+      debugPrint('⚖️ POST /viaje/$asignacionId/pesaje-destino');
 
       final response = await _dio.post(
-        '/transportista/viaje/$asignacionId/iniciar-descarga',
-        data: {'lat': lat, 'lng': lng},
+        '/transportista/viaje/$asignacionId/pesaje-destino',
+        data: {
+          'lat': lat,
+          'lng': lng,
+          'pesoBrutoKg': pesoBrutoKg,
+          'pesoTaraKg': pesoTaraKg,
+          'tipoPesaje': 'destino', // Se setea en el backend pero lo incluimos
+          if (observaciones != null && observaciones.isNotEmpty)
+            'observaciones': observaciones,
+          if (ticketPesajeUrl != null && ticketPesajeUrl.isNotEmpty)
+            'ticketPesajeUrl': ticketPesajeUrl,
+        },
       );
 
-      if (response.statusCode == 200 && response.data['success'] == true) {
-        debugPrint('✅ Descarga iniciada');
-        return TransicionEstadoResponse.fromJson(response.data);
-      }
-
-      throw Exception(response.data['message'] ?? 'Error al iniciar descarga');
+      debugPrint('✅ Pesaje destino registrado');
+      return TransicionEstadoResponse.fromJson(response.data);
     } on DioException catch (e) {
-      debugPrint('❌ DioException en iniciarDescarga: ${e.type}');
-      throw _handleDioError(e, 'iniciar descarga');
+      debugPrint('❌ DioException en registrarPesajeDestino: ${e.type}');
+      throw _handleDioError(e, 'registrar pesaje destino');
     } catch (e) {
-      debugPrint('❌ Exception en iniciarDescarga: $e');
+      debugPrint('❌ Exception en registrarPesajeDestino: $e');
       if (e is NetworkException) rethrow;
       throw Exception('Error inesperado: $e');
     }
   }
 
-  /// POST /transportista/viaje/{asignacionId}/confirmar-descarga
-  /// Transición: Descargando → Completado
+  // ==================== PASO 6: LLEGADA A ALMACÉN ====================
+
+  /// POST /transportista/viaje/{asignacionId}/llegada-almacen
+  /// Transición: En camino almacén destino → Descargando
+  Future<TransicionEstadoResponse> confirmarLlegadaAlmacen({
+    required int asignacionId,
+    required double lat,
+    required double lng,
+    required bool confirmacionLlegada,
+    String? observaciones,
+  }) async {
+    try {
+      debugPrint('🏭 POST /viaje/$asignacionId/llegada-almacen');
+
+      final response = await _dio.post(
+        '/transportista/viaje/$asignacionId/llegada-almacen',
+        data: {
+          'lat': lat,
+          'lng': lng,
+          'confirmacionLlegada': confirmacionLlegada,
+          if (observaciones != null && observaciones.isNotEmpty)
+            'observaciones': observaciones,
+        },
+      );
+
+      debugPrint('✅ Llegada a almacén confirmada');
+      return TransicionEstadoResponse.fromJson(response.data);
+    } on DioException catch (e) {
+      debugPrint('❌ DioException en confirmarLlegadaAlmacen: ${e.type}');
+      throw _handleDioError(e, 'confirmar llegada a almacén');
+    } catch (e) {
+      debugPrint('❌ Exception en confirmarLlegadaAlmacen: $e');
+      if (e is NetworkException) rethrow;
+      throw Exception('Error inesperado: $e');
+    }
+  }
+
+  // ==================== PASO 7: DESCARGA ====================
+
+  /// POST /transportista/viaje/{asignacionId}/descarga
+  /// Transición: Descargando → Descargando (preparado para finalizar)
   Future<TransicionEstadoResponse> confirmarDescarga({
     required int asignacionId,
     required double lat,
     required double lng,
     String? observaciones,
-    List<String>? fotosUrls,
-    String? firmaReceptor,
   }) async {
     try {
-      debugPrint('✅ Confirmando descarga para asignacionId: $asignacionId');
+      debugPrint('📦 POST /viaje/$asignacionId/descarga');
 
       final response = await _dio.post(
-        '/transportista/viaje/$asignacionId/confirmar-descarga',
+        '/transportista/viaje/$asignacionId/descarga',
         data: {
           'lat': lat,
           'lng': lng,
-          if (observaciones != null) 'observaciones': observaciones,
-          if (fotosUrls != null && fotosUrls.isNotEmpty) 'fotosUrls': fotosUrls,
-          if (firmaReceptor != null) 'firmaReceptor': firmaReceptor,
+          if (observaciones != null && observaciones.isNotEmpty)
+            'observaciones': observaciones,
         },
       );
 
-      if (response.statusCode == 200 && response.data['success'] == true) {
-        debugPrint('✅ Descarga confirmada - Viaje completado');
-        return TransicionEstadoResponse.fromJson(response.data);
-      }
-
-      throw Exception(
-        response.data['message'] ?? 'Error al confirmar descarga',
-      );
+      debugPrint('✅ Descarga confirmada');
+      return TransicionEstadoResponse.fromJson(response.data);
     } on DioException catch (e) {
       debugPrint('❌ DioException en confirmarDescarga: ${e.type}');
       throw _handleDioError(e, 'confirmar descarga');
@@ -306,10 +329,45 @@ class ViajeRepository {
     }
   }
 
+  // ==================== PASO 8: FINALIZAR RUTA ====================
+
+  /// POST /transportista/viaje/{asignacionId}/finalizar
+  /// Transición: Descargando → Completado
+  Future<TransicionEstadoResponse> finalizarRuta({
+    required int asignacionId,
+    required double lat,
+    required double lng,
+    String? observacionesFinales,
+  }) async {
+    try {
+      debugPrint('✅ POST /viaje/$asignacionId/finalizar');
+
+      final response = await _dio.post(
+        '/transportista/viaje/$asignacionId/finalizar',
+        data: {
+          'lat': lat,
+          'lng': lng,
+          if (observacionesFinales != null && observacionesFinales.isNotEmpty)
+            'observacionesFinales': observacionesFinales,
+        },
+      );
+
+      debugPrint('✅ Ruta finalizada - Viaje completado');
+      return TransicionEstadoResponse.fromJson(response.data);
+    } on DioException catch (e) {
+      debugPrint('❌ DioException en finalizarRuta: ${e.type}');
+      throw _handleDioError(e, 'finalizar ruta');
+    } catch (e) {
+      debugPrint('❌ Exception en finalizarRuta: $e');
+      if (e is NetworkException) rethrow;
+      throw Exception('Error inesperado: $e');
+    }
+  }
+
   // ==================== UPLOAD EVIDENCIA ====================
 
-  /// Sube una evidencia (imagen)
-  /// Retorna el objectName del archivo subido
+  /// Sube una evidencia (imagen) usando el ApiProvider
+  /// Retorna el objectName del archivo subido en MinIO
   Future<String> uploadEvidencia(File file, int asignacionId) async {
     try {
       debugPrint('📤 Subiendo evidencia para asignacionId: $asignacionId');
@@ -331,94 +389,6 @@ class ViajeRepository {
         'No se pudo subir la evidencia. Verifica tu conexión.',
         type: NetworkExceptionType.noConnection,
       );
-    }
-  }
-
-  // ==================== EVENTO UNIFICADO (OPCIONAL) ====================
-
-  /// POST /transportista/viaje/{asignacionId}/evento
-  /// Endpoint unificado para cualquier evento del viaje
-  Future<TransicionEstadoResponse> registrarEvento({
-    required int asignacionId,
-    required String tipoEvento,
-    double? lat,
-    double? lng,
-    String? comentario,
-    List<String>? evidencias,
-    double? pesoBruto,
-    double? pesoTara,
-    Map<String, dynamic>? metadatosExtra,
-  }) async {
-    try {
-      debugPrint(
-        '📝 Registrando evento: $tipoEvento para asignacionId: $asignacionId',
-      );
-
-      final data = <String, dynamic>{'tipoEvento': tipoEvento};
-
-      if (lat != null) data['lat'] = lat;
-      if (lng != null) data['lng'] = lng;
-      if (comentario != null) data['comentario'] = comentario;
-      if (evidencias != null && evidencias.isNotEmpty) {
-        data['evidencias'] = evidencias;
-      }
-      if (pesoBruto != null && pesoTara != null) {
-        data['datosPesaje'] = {'pesoBruto': pesoBruto, 'pesoTara': pesoTara};
-      }
-      if (metadatosExtra != null) {
-        data['metadatosExtra'] = metadatosExtra;
-      }
-
-      final response = await _dio.post(
-        '/transportista/viaje/$asignacionId/evento',
-        data: data,
-      );
-
-      if (response.statusCode == 200 && response.data['success'] == true) {
-        debugPrint('✅ Evento registrado');
-        return TransicionEstadoResponse.fromJson(response.data);
-      }
-
-      throw Exception(response.data['message'] ?? 'Error al registrar evento');
-    } on DioException catch (e) {
-      debugPrint('❌ DioException en registrarEvento: ${e.type}');
-      throw _handleDioError(e, 'registrar evento');
-    } catch (e) {
-      debugPrint('❌ Exception en registrarEvento: $e');
-      if (e is NetworkException) rethrow;
-      throw Exception('Error inesperado: $e');
-    }
-  }
-
-  // ==================== CONSULTAS ====================
-
-  /// GET /transportista/viaje/{asignacionId}/estado
-  /// Obtiene el estado actual y eventos del viaje
-  Future<EstadoViajeResponse> getEstadoViaje(int asignacionId) async {
-    try {
-      debugPrint(
-        '📊 Obteniendo estado del viaje para asignacionId: $asignacionId',
-      );
-
-      final response = await _dio.get(
-        '/transportista/viaje/$asignacionId/estado',
-      );
-
-      if (response.statusCode == 200 && response.data['success'] == true) {
-        debugPrint('✅ Estado del viaje obtenido');
-        return EstadoViajeResponse.fromJson(response.data);
-      }
-
-      throw Exception(
-        response.data['message'] ?? 'Error al obtener estado del viaje',
-      );
-    } on DioException catch (e) {
-      debugPrint('❌ DioException en getEstadoViaje: ${e.type}');
-      throw _handleDioError(e, 'obtener estado del viaje');
-    } catch (e) {
-      debugPrint('❌ Exception en getEstadoViaje: $e');
-      if (e is NetworkException) rethrow;
-      throw Exception('Error inesperado: $e');
     }
   }
 
@@ -501,42 +471,8 @@ class ViajeRepository {
 
 // ==================== MODELOS DE RESPUESTA ====================
 
-/// Respuesta del estado del viaje
-class EstadoViajeResponse {
-  final bool success;
-  final int asignacionId;
-  final String estado;
-  final DateTime? fechaInicio;
-  final DateTime? fechaFin;
-  final Map<String, dynamic> observaciones;
-
-  EstadoViajeResponse({
-    required this.success,
-    required this.asignacionId,
-    required this.estado,
-    this.fechaInicio,
-    this.fechaFin,
-    required this.observaciones,
-  });
-
-  factory EstadoViajeResponse.fromJson(Map<String, dynamic> json) {
-    final data = json['data'] as Map<String, dynamic>? ?? {};
-    return EstadoViajeResponse(
-      success: json['success'] as bool? ?? false,
-      asignacionId: data['asignacionId'] as int? ?? 0,
-      estado: data['estado'] as String? ?? '',
-      fechaInicio: data['fechaInicio'] != null
-          ? DateTime.parse(data['fechaInicio'])
-          : null,
-      fechaFin: data['fechaFin'] != null
-          ? DateTime.parse(data['fechaFin'])
-          : null,
-      observaciones: data['observaciones'] as Map<String, dynamic>? ?? {},
-    );
-  }
-}
-
 /// Respuesta de transición de estado del backend
+/// Corresponde a: TransicionEstadoResponseDto
 class TransicionEstadoResponse {
   final bool success;
   final String message;
@@ -544,6 +480,8 @@ class TransicionEstadoResponse {
   final String estadoNuevo;
   final String proximoPaso;
   final ProximoPuntoControl? proximoPuntoControl;
+  final Map<String, dynamic>? metadata;
+  final DateTime? timestamp;
 
   TransicionEstadoResponse({
     required this.success,
@@ -552,6 +490,8 @@ class TransicionEstadoResponse {
     required this.estadoNuevo,
     required this.proximoPaso,
     this.proximoPuntoControl,
+    this.metadata,
+    this.timestamp,
   });
 
   factory TransicionEstadoResponse.fromJson(Map<String, dynamic> json) {
@@ -562,24 +502,47 @@ class TransicionEstadoResponse {
       estadoNuevo: json['estadoNuevo'] as String? ?? '',
       proximoPaso: json['proximoPaso'] as String? ?? '',
       proximoPuntoControl: json['proximoPuntoControl'] != null
-          ? ProximoPuntoControl.fromJson(json['proximoPuntoControl'])
+          ? ProximoPuntoControl.fromJson(
+              json['proximoPuntoControl'] as Map<String, dynamic>,
+            )
+          : null,
+      metadata: json['metadata'] as Map<String, dynamic>?,
+      timestamp: json['timestamp'] != null
+          ? DateTime.parse(json['timestamp'] as String)
           : null,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'success': success,
+      'message': message,
+      'estadoAnterior': estadoAnterior,
+      'estadoNuevo': estadoNuevo,
+      'proximoPaso': proximoPaso,
+      if (proximoPuntoControl != null)
+        'proximoPuntoControl': proximoPuntoControl!.toJson(),
+      if (metadata != null) 'metadata': metadata,
+      if (timestamp != null) 'timestamp': timestamp!.toIso8601String(),
+    };
   }
 }
 
 /// Próximo punto de control
+/// Corresponde a: ProximoPuntoControlDto
 class ProximoPuntoControl {
-  final String tipo;
+  final String tipo; // mina, balanza_cooperativa, balanza_destino, almacen
   final String nombre;
   final double latitud;
   final double longitud;
+  final String? descripcion;
 
   ProximoPuntoControl({
     required this.tipo,
     required this.nombre,
     required this.latitud,
     required this.longitud,
+    this.descripcion,
   });
 
   factory ProximoPuntoControl.fromJson(Map<String, dynamic> json) {
@@ -588,6 +551,17 @@ class ProximoPuntoControl {
       nombre: json['nombre'] as String? ?? '',
       latitud: (json['latitud'] as num?)?.toDouble() ?? 0.0,
       longitud: (json['longitud'] as num?)?.toDouble() ?? 0.0,
+      descripcion: json['descripcion'] as String?,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'tipo': tipo,
+      'nombre': nombre,
+      'latitud': latitud,
+      'longitud': longitud,
+      if (descripcion != null) 'descripcion': descripcion,
+    };
   }
 }

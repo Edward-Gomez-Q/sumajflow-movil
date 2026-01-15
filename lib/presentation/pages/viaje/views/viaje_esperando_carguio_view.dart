@@ -1,24 +1,18 @@
-// lib/presentation/pages/viaje/views/viaje_pesaje_view.dart
+// lib/presentation/pages/viaje/views/viaje_esperando_carguio_view.dart
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:sumajflow_movil/presentation/getx/viaje_controller.dart';
 import 'package:sumajflow_movil/presentation/widgets/viaje/viaje_estado_header.dart';
-import 'package:sumajflow_movil/presentation/widgets/viaje/viaje_info_card.dart';
-import 'package:sumajflow_movil/presentation/widgets/viaje/viaje_pesaje_form.dart';
 import 'package:sumajflow_movil/presentation/widgets/viaje/viaje_evidencia_uploader.dart';
+import 'package:sumajflow_movil/presentation/widgets/viaje/viaje_info_card.dart';
 import 'package:sumajflow_movil/presentation/widgets/viaje/viaje_observacion_field.dart';
 import 'package:sumajflow_movil/presentation/widgets/viaje/viaje_action_button.dart';
 
-class ViajePesajeView extends StatelessWidget {
+class ViajeEsperandoCarguioView extends StatelessWidget {
   final ViajeController controller;
-  final bool esCooperativa;
 
-  const ViajePesajeView({
-    super.key,
-    required this.controller,
-    required this.esCooperativa,
-  });
+  const ViajeEsperandoCarguioView({super.key, required this.controller});
 
   @override
   Widget build(BuildContext context) {
@@ -36,26 +30,24 @@ class ViajePesajeView extends StatelessWidget {
                     estado: controller.estadoActual.value,
                     subtitulo: controller.descripcionEstadoActual,
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 32),
 
-                  // Icono de balanza
+                  // Icono de carga
                   Container(
-                    width: 100,
-                    height: 100,
+                    width: 120,
+                    height: 120,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: const Color(0xFF06B6D4).withValues(alpha: 0.15),
+                      color: const Color(0xFFF97316).withValues(alpha: 0.15),
                     ),
                     child: const Center(
-                      child: Text('⚖️', style: TextStyle(fontSize: 48)),
+                      child: Text('🚛', style: TextStyle(fontSize: 56)),
                     ),
                   ),
                   const SizedBox(height: 24),
 
                   Text(
-                    esCooperativa
-                        ? 'Pesaje Balanza Cooperativa'
-                        : 'Pesaje Balanza Destino',
+                    'Confirmar Carguío',
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -63,65 +55,23 @@ class ViajePesajeView extends StatelessWidget {
                   const SizedBox(height: 8),
 
                   Text(
-                    esCooperativa
-                        ? 'Primer pesaje del mineral'
-                        : 'Pesaje final en destino',
+                    'Confirma que el carguío se completó exitosamente',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
+                    textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 32),
 
-                  // Formulario de pesaje
-                  ViajePesajeForm(
-                    onPesoBrutoChanged: controller.actualizarPesoBruto,
-                    onPesoTaraChanged: controller.actualizarPesoTara,
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Peso neto calculado
-                  Obx(() {
-                    final pesoNeto = controller.pesoNetoCalculado;
-                    if (pesoNeto > 0) {
-                      return Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF10B981).withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: const Color(
-                              0xFF10B981,
-                            ).withValues(alpha: 0.3),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              Icons.scale_rounded,
-                              color: Color(0xFF10B981),
-                              size: 24,
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              'Peso Neto: ${pesoNeto.toStringAsFixed(2)} kg',
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFF10B981),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }
-                    return const SizedBox.shrink();
-                  }),
+                  // Checkbox de confirmación
+                  _buildChecklistCard(theme),
                   const SizedBox(height: 20),
 
                   // Alerta de evidencia
                   ViajeAlertCard(
-                    mensaje: 'Toma una foto del ticket de pesaje',
-                    tipo: ViajeAlertType.info,
+                    mensaje:
+                        'Toma al menos una foto como evidencia del carguío',
+                    tipo: ViajeAlertType.warning,
                   ),
                   const SizedBox(height: 16),
 
@@ -132,7 +82,7 @@ class ViajePesajeView extends StatelessWidget {
                       onAgregarEvidencia: controller.agregarEvidencia,
                       onEliminarEvidencia: controller.eliminarEvidencia,
                       obligatorio: true,
-                      maxEvidencias: 3,
+                      maxEvidencias: 5,
                       mostrarSubiendo: controller.subiendoEvidencia.value,
                     );
                   }),
@@ -140,9 +90,9 @@ class ViajePesajeView extends StatelessWidget {
 
                   // Observaciones
                   ViajeObservacionField(
-                    label: 'Observaciones del Pesaje',
+                    label: 'Observaciones del Carguío',
                     onChanged: controller.actualizarComentario,
-                    hint: 'Notas sobre el pesaje...',
+                    hint: 'Notas sobre el proceso de carga...',
                   ),
                   const SizedBox(height: 100),
                 ],
@@ -150,6 +100,54 @@ class ViajePesajeView extends StatelessWidget {
             ),
           ),
           _buildBottomButton(theme),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChecklistCard(ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.inventory_2_rounded,
+                color: theme.colorScheme.primary,
+                size: 24,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Verificación de Carga',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Checkbox: Mineral cargado completamente
+          Obx(() {
+            return CheckboxListTile(
+              value: controller.mineralCargadoCompletamente.value,
+              onChanged: (value) =>
+                  controller.actualizarMineralCargado(value ?? true),
+              title: const Text('Mineral cargado completamente'),
+              subtitle: const Text('El camión está completamente cargado'),
+              contentPadding: EdgeInsets.zero,
+              controlAffinity: ListTileControlAffinity.leading,
+            );
+          }),
         ],
       ),
     );
@@ -177,7 +175,7 @@ class ViajePesajeView extends StatelessWidget {
             habilitado: controller.botonPrincipalHabilitado.value,
             cargando: controller.isLoading.value,
             onPressed: controller.ejecutarAccionPrincipal,
-            colorPrimario: const Color(0xFF06B6D4),
+            colorPrimario: const Color(0xFFF97316),
           );
         }),
       ),

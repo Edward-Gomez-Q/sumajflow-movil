@@ -17,7 +17,7 @@ import 'package:sumajflow_movil/data/repositories/viaje_repository.dart';
 import 'package:sumajflow_movil/presentation/getx/tracking_controller.dart';
 
 /// Controller de UI y eventos de negocio del viaje
-/// Delega el tracking GPS al TrackingController
+/// Flujo de 8 pasos sincronizado con backend
 class ViajeController extends GetxController {
   final int asignacionId;
   final LoteDetalleViajeModel? loteDetalleInicial;
@@ -46,13 +46,25 @@ class ViajeController extends GetxController {
   final loteDetalle = Rxn<LoteDetalleViajeModel>();
   final estadoActual = EstadoViaje.esperandoIniciar.obs;
 
-  // Formularios
+  // Formularios generales
   final comentarioTemp = ''.obs;
-  final pesoBrutoTemp = 0.0.obs;
-  final pesoTaraTemp = 0.0.obs;
   final evidenciasTemporales = <File>[].obs;
   final evidenciasSubidas = <String>[].obs;
   final subiendoEvidencia = false.obs;
+
+  // Formulario de pesaje
+  final pesoBrutoTemp = 0.0.obs;
+  final pesoTaraTemp = 0.0.obs;
+
+  // Formulario de llegada a mina
+  final palaOperativa = true.obs;
+  final mineralVisible = true.obs;
+
+  // Formulario de carguío
+  final mineralCargadoCompletamente = true.obs;
+
+  // Formulario de llegada a almacén
+  final confirmacionLlegada = true.obs;
 
   // Geofencing
   final distanciaAlDestino = Rxn<double>();
@@ -144,7 +156,6 @@ class ViajeController extends GetxController {
       );
       if (estadoGuardado != null) {
         debugPrint('📱 Estado offline encontrado: $estadoGuardado');
-        // No cambiar el estado aquí, el backend es la fuente de verdad
       }
 
       // Recuperar acciones pendientes
@@ -176,7 +187,7 @@ class ViajeController extends GetxController {
   }
 
   // ============================================================
-  // EVENTOS DE NEGOCIO
+  // FLUJO PRINCIPAL - 8 PASOS
   // ============================================================
 
   Future<void> ejecutarAccionPrincipal() async {
@@ -195,37 +206,37 @@ class ViajeController extends GetxController {
 
       debugPrint('🎬 Ejecutando acción para estado: ${estadoActual.value}');
 
-      // Verificar conectividad antes de intentar cualquier acción
       final online = trackingController.isOnline.value;
 
       switch (estadoActual.value) {
         case EstadoViaje.esperandoIniciar:
-          await _iniciarViajeConOffline(pos, online);
+          await _paso1_IniciarViaje(pos, online);
           break;
+
         case EstadoViaje.enCaminoMina:
-          await _confirmarLlegadaMinaConOffline(pos, online);
+          await _paso2_LlegadaMina(pos, online);
           break;
+
         case EstadoViaje.esperandoCarguio:
-          await _iniciarCarguio();
+          await _paso3_ConfirmarCarguio(pos, online);
           break;
-        case EstadoViaje.cargandoMineral:
-          await _finalizarCarguioConOffline(pos, online);
-          break;
-        case EstadoViaje.carguioCompletado:
-          await _salirDeMina(pos);
-          break;
+
         case EstadoViaje.enCaminoBalanzaCoop:
-          await _registrarPesajeCoopConOffline(pos, online);
+          await _paso4_PesajeCooperativa(pos, online);
           break;
+
         case EstadoViaje.enCaminoBalanzaDestino:
-          await _registrarPesajeDestinoConOffline(pos, online);
+          await _paso5_PesajeDestino(pos, online);
           break;
-        case EstadoViaje.rutaCompletada:
-          await _iniciarDescargaConOffline(pos, online);
+
+        case EstadoViaje.enCaminoAlmacenDestino:
+          await _paso6_LlegadaAlmacen(pos, online);
           break;
+
         case EstadoViaje.descargando:
-          await _finalizarDescargaConOffline(pos, online);
+          await _paso7_ConfirmarDescarga(pos, online);
           break;
+
         default:
           debugPrint('⚠️ No hay acción definida para este estado');
           break;
@@ -239,11 +250,11 @@ class ViajeController extends GetxController {
   }
 
   // ============================================================
-  // MÉTODOS CON SOPORTE OFFLINE
+  // PASO 1: INICIAR VIAJE
   // ============================================================
 
-  Future<void> _iniciarViajeConOffline(Position pos, bool online) async {
-    debugPrint('🚀 Iniciando viaje... (${online ? "online" : "offline"})');
+  Future<void> _paso1_IniciarViaje(Position pos, bool online) async {
+    debugPrint('🚀 PASO 1: Iniciar viaje (${online ? "online" : "offline"})');
 
     if (online) {
       try {
@@ -266,7 +277,7 @@ class ViajeController extends GetxController {
           throw Exception(response.message);
         }
       } on NetworkException catch (e) {
-        debugPrint('📴 Sin conexión, guardando offline: ${e.message}');
+        debugPrint('📴 Sin conexión: ${e.message}');
         await _guardarAccionOffline('iniciar_viaje', pos);
         await _cambiarEstadoLocal(EstadoViaje.enCaminoMina);
         await trackingController.iniciarTracking();
@@ -283,20 +294,19 @@ class ViajeController extends GetxController {
       await trackingController.iniciarTracking();
       _mostrarNotificacion(
         'Modo Offline',
-        'Viaje iniciado localmente. Se sincronizará cuando recuperes conexión.',
+        'Viaje iniciado localmente.',
         esInfo: true,
       );
       _limpiarFormulario();
     }
   }
 
-  Future<void> _confirmarLlegadaMinaConOffline(
-    Position pos,
-    bool online,
-  ) async {
-    debugPrint(
-      '📍 Confirmando llegada a mina... (${online ? "online" : "offline"})',
-    );
+  // ============================================================
+  // PASO 2: LLEGADA A MINA
+  // ============================================================
+
+  Future<void> _paso2_LlegadaMina(Position pos, bool online) async {
+    debugPrint('🏔️ PASO 2: Llegada a mina (${online ? "online" : "offline"})');
 
     if (online) {
       try {
@@ -304,11 +314,13 @@ class ViajeController extends GetxController {
           asignacionId: asignacionId,
           lat: pos.latitude,
           lng: pos.longitude,
+          palaOperativa: palaOperativa.value,
+          mineralVisible: mineralVisible.value,
           observaciones: comentarioTemp.value.isNotEmpty
               ? comentarioTemp.value
               : null,
-          fotosUrls: evidenciasSubidas.isNotEmpty
-              ? evidenciasSubidas.toList()
+          fotoReferenciaUrl: evidenciasSubidas.isNotEmpty
+              ? evidenciasSubidas.first
               : null,
         );
 
@@ -320,7 +332,7 @@ class ViajeController extends GetxController {
           throw Exception(response.message);
         }
       } on NetworkException catch (e) {
-        debugPrint('📴 Sin conexión, guardando offline: ${e.message}');
+        debugPrint('📴 Sin conexión: ${e.message}');
         await _guardarAccionOffline('confirmar_llegada_mina', pos);
         await _cambiarEstadoLocal(EstadoViaje.esperandoCarguio);
         _mostrarNotificacion(
@@ -342,36 +354,24 @@ class ViajeController extends GetxController {
     }
   }
 
-  Future<void> _iniciarCarguio() async {
-    debugPrint('⚙️ Iniciando carguío...');
-    // Transición local para mostrar UI de carga
-    estadoActual.value = EstadoViaje.cargandoMineral;
-    await _offlineStorage.saveEstadoViajeOffline(
-      asignacionId,
-      estadoActual.value.toString(),
-    );
-    _mostrarNotificacion(
-      'Carguío iniciado',
-      'Toma fotos al finalizar',
-      esInfo: true,
-    );
-  }
+  // ============================================================
+  // PASO 3: CONFIRMAR CARGUÍO
+  // ============================================================
 
-  Future<void> _finalizarCarguioConOffline(Position pos, bool online) async {
-    debugPrint('✅ Finalizando carguío... (${online ? "online" : "offline"})');
+  Future<void> _paso3_ConfirmarCarguio(Position pos, bool online) async {
+    debugPrint('🚛 PASO 3: Carguío (${online ? "online" : "offline"})');
 
     // Validar evidencias
     if (evidenciasTemporales.isEmpty && evidenciasSubidas.isEmpty) {
       throw Exception('Debes tomar al menos una foto como evidencia');
     }
 
-    // Subir evidencias pendientes si hay conexión
+    // Subir evidencias si hay conexión
     if (online && evidenciasTemporales.isNotEmpty) {
       try {
         await _subirEvidenciasPendientes();
       } on NetworkException catch (e) {
-        debugPrint('📴 No se pudieron subir evidencias, guardando offline');
-        // Continuar sin las evidencias subidas
+        debugPrint('📴 No se pudieron subir evidencias');
       }
     }
 
@@ -381,11 +381,12 @@ class ViajeController extends GetxController {
           asignacionId: asignacionId,
           lat: pos.latitude,
           lng: pos.longitude,
+          mineralCargadoCompletamente: mineralCargadoCompletamente.value,
           observaciones: comentarioTemp.value.isNotEmpty
               ? comentarioTemp.value
               : null,
-          fotosUrls: evidenciasSubidas.isNotEmpty
-              ? evidenciasSubidas.toList()
+          fotoCamionCargadoUrl: evidenciasSubidas.isNotEmpty
+              ? evidenciasSubidas.first
               : null,
         );
 
@@ -397,9 +398,9 @@ class ViajeController extends GetxController {
           throw Exception(response.message);
         }
       } on NetworkException catch (e) {
-        debugPrint('📴 Sin conexión, guardando offline: ${e.message}');
+        debugPrint('📴 Sin conexión: ${e.message}');
         await _guardarAccionOffline('confirmar_carguio', pos);
-        await _cambiarEstadoLocal(EstadoViaje.carguioCompletado);
+        await _cambiarEstadoLocal(EstadoViaje.enCaminoBalanzaCoop);
         _mostrarNotificacion(
           'Modo Offline',
           'Carguío registrado localmente.',
@@ -409,7 +410,7 @@ class ViajeController extends GetxController {
       }
     } else {
       await _guardarAccionOffline('confirmar_carguio', pos);
-      await _cambiarEstadoLocal(EstadoViaje.carguioCompletado);
+      await _cambiarEstadoLocal(EstadoViaje.enCaminoBalanzaCoop);
       _mostrarNotificacion(
         'Modo Offline',
         'Carguío registrado localmente.',
@@ -419,24 +420,13 @@ class ViajeController extends GetxController {
     }
   }
 
-  Future<void> _salirDeMina(Position pos) async {
-    debugPrint('🚗 Saliendo de la mina...');
-    // Transición local
-    estadoActual.value = EstadoViaje.enCaminoBalanzaCoop;
-    await _offlineStorage.saveEstadoViajeOffline(
-      asignacionId,
-      estadoActual.value.toString(),
-    );
-    _mostrarNotificacion(
-      'En camino',
-      'Dirígete a la balanza de la cooperativa',
-      esInfo: true,
-    );
-  }
+  // ============================================================
+  // PASO 4: PESAJE COOPERATIVA
+  // ============================================================
 
-  Future<void> _registrarPesajeCoopConOffline(Position pos, bool online) async {
+  Future<void> _paso4_PesajeCooperativa(Position pos, bool online) async {
     debugPrint(
-      '⚖️ Registrando pesaje cooperativa... (${online ? "online" : "offline"})',
+      '⚖️ PASO 4: Pesaje cooperativa (${online ? "online" : "offline"})',
     );
     _validarDatosPesaje();
 
@@ -451,9 +441,10 @@ class ViajeController extends GetxController {
 
     if (online) {
       try {
-        final response = await _viajeRepository.registrarPesaje(
+        final response = await _viajeRepository.registrarPesajeCooperativa(
           asignacionId: asignacionId,
-          tipoPesaje: 'cooperativa',
+          lat: pos.latitude,
+          lng: pos.longitude,
           pesoBrutoKg: pesoBrutoTemp.value,
           pesoTaraKg: pesoTaraTemp.value,
           observaciones: comentarioTemp.value.isNotEmpty
@@ -472,7 +463,7 @@ class ViajeController extends GetxController {
           throw Exception(response.message);
         }
       } on NetworkException catch (e) {
-        debugPrint('📴 Sin conexión, guardando offline: ${e.message}');
+        debugPrint('📴 Sin conexión: ${e.message}');
         await _guardarAccionOffline('registrar_pesaje_coop', pos);
         await _cambiarEstadoLocal(EstadoViaje.enCaminoBalanzaDestino);
         _mostrarNotificacion(
@@ -494,13 +485,12 @@ class ViajeController extends GetxController {
     }
   }
 
-  Future<void> _registrarPesajeDestinoConOffline(
-    Position pos,
-    bool online,
-  ) async {
-    debugPrint(
-      '⚖️ Registrando pesaje destino... (${online ? "online" : "offline"})',
-    );
+  // ============================================================
+  // PASO 5: PESAJE DESTINO
+  // ============================================================
+
+  Future<void> _paso5_PesajeDestino(Position pos, bool online) async {
+    debugPrint('⚖️ PASO 5: Pesaje destino (${online ? "online" : "offline"})');
     _validarDatosPesaje();
 
     // Subir evidencias si hay conexión
@@ -514,9 +504,10 @@ class ViajeController extends GetxController {
 
     if (online) {
       try {
-        final response = await _viajeRepository.registrarPesaje(
+        final response = await _viajeRepository.registrarPesajeDestino(
           asignacionId: asignacionId,
-          tipoPesaje: 'destino',
+          lat: pos.latitude,
+          lng: pos.longitude,
           pesoBrutoKg: pesoBrutoTemp.value,
           pesoTaraKg: pesoTaraTemp.value,
           observaciones: comentarioTemp.value.isNotEmpty
@@ -535,9 +526,9 @@ class ViajeController extends GetxController {
           throw Exception(response.message);
         }
       } on NetworkException catch (e) {
-        debugPrint('📴 Sin conexión, guardando offline: ${e.message}');
+        debugPrint('📴 Sin conexión: ${e.message}');
         await _guardarAccionOffline('registrar_pesaje_destino', pos);
-        await _cambiarEstadoLocal(EstadoViaje.rutaCompletada);
+        await _cambiarEstadoLocal(EstadoViaje.enCaminoAlmacenDestino);
         _mostrarNotificacion(
           'Modo Offline',
           'Pesaje registrado localmente.',
@@ -547,7 +538,7 @@ class ViajeController extends GetxController {
       }
     } else {
       await _guardarAccionOffline('registrar_pesaje_destino', pos);
-      await _cambiarEstadoLocal(EstadoViaje.rutaCompletada);
+      await _cambiarEstadoLocal(EstadoViaje.enCaminoAlmacenDestino);
       _mostrarNotificacion(
         'Modo Offline',
         'Pesaje registrado localmente.',
@@ -557,50 +548,67 @@ class ViajeController extends GetxController {
     }
   }
 
-  Future<void> _iniciarDescargaConOffline(Position pos, bool online) async {
-    debugPrint('📦 Iniciando descarga... (${online ? "online" : "offline"})');
+  // ============================================================
+  // PASO 6: LLEGADA A ALMACÉN
+  // ============================================================
+
+  Future<void> _paso6_LlegadaAlmacen(Position pos, bool online) async {
+    debugPrint(
+      '🏭 PASO 6: Llegada a almacén (${online ? "online" : "offline"})',
+    );
 
     if (online) {
       try {
-        final response = await _viajeRepository.iniciarDescarga(
+        final response = await _viajeRepository.confirmarLlegadaAlmacen(
           asignacionId: asignacionId,
           lat: pos.latitude,
           lng: pos.longitude,
+          confirmacionLlegada: confirmacionLlegada.value,
+          observaciones: comentarioTemp.value.isNotEmpty
+              ? comentarioTemp.value
+              : null,
         );
 
         if (response.success) {
           _sincronizarEstadoDesdeBackend(response.estadoNuevo);
           _mostrarNotificacion(
-            'Descarga iniciada',
+            'Llegada confirmada',
             response.proximoPaso,
             esInfo: true,
           );
+          _limpiarFormulario();
         } else {
           throw Exception(response.message);
         }
       } on NetworkException catch (e) {
-        debugPrint('📴 Sin conexión, guardando offline: ${e.message}');
-        await _guardarAccionOffline('iniciar_descarga', pos);
+        debugPrint('📴 Sin conexión: ${e.message}');
+        await _guardarAccionOffline('confirmar_llegada_almacen', pos);
         await _cambiarEstadoLocal(EstadoViaje.descargando);
         _mostrarNotificacion(
           'Modo Offline',
-          'Descarga iniciada localmente.',
+          'Llegada registrada localmente.',
           esInfo: true,
         );
+        _limpiarFormulario();
       }
     } else {
-      await _guardarAccionOffline('iniciar_descarga', pos);
+      await _guardarAccionOffline('confirmar_llegada_almacen', pos);
       await _cambiarEstadoLocal(EstadoViaje.descargando);
       _mostrarNotificacion(
         'Modo Offline',
-        'Descarga iniciada localmente.',
+        'Llegada registrada localmente.',
         esInfo: true,
       );
+      _limpiarFormulario();
     }
   }
 
-  Future<void> _finalizarDescargaConOffline(Position pos, bool online) async {
-    debugPrint('✅ Finalizando descarga... (${online ? "online" : "offline"})');
+  // ============================================================
+  // PASO 7: CONFIRMAR DESCARGA
+  // ============================================================
+
+  Future<void> _paso7_ConfirmarDescarga(Position pos, bool online) async {
+    debugPrint('📦 PASO 7: Descarga (${online ? "online" : "offline"})');
 
     if (evidenciasTemporales.isEmpty && evidenciasSubidas.isEmpty) {
       throw Exception('Debes tomar al menos una foto como evidencia');
@@ -624,22 +632,66 @@ class ViajeController extends GetxController {
           observaciones: comentarioTemp.value.isNotEmpty
               ? comentarioTemp.value
               : null,
-          fotosUrls: evidenciasSubidas.isNotEmpty
-              ? evidenciasSubidas.toList()
+        );
+
+        if (response.success) {
+          _sincronizarEstadoDesdeBackend(response.estadoNuevo);
+
+          // IMPORTANTE: Ahora necesitamos llamar a finalizar ruta
+          // para completar el viaje (PASO 8)
+          await _paso8_FinalizarRuta(pos, online);
+        } else {
+          throw Exception(response.message);
+        }
+      } on NetworkException catch (e) {
+        debugPrint('📴 Sin conexión: ${e.message}');
+        await _guardarAccionOffline('confirmar_descarga', pos);
+        await _cambiarEstadoLocal(EstadoViaje.completado);
+        trackingController.detenerTracking();
+        _mostrarNotificacion(
+          'Modo Offline',
+          '¡Descarga confirmada! Se sincronizará cuando recuperes conexión.',
+        );
+        _limpiarFormulario();
+      }
+    } else {
+      await _guardarAccionOffline('confirmar_descarga', pos);
+      await _cambiarEstadoLocal(EstadoViaje.completado);
+      trackingController.detenerTracking();
+      _mostrarNotificacion('Modo Offline', '¡Descarga confirmada!');
+      _limpiarFormulario();
+    }
+  }
+
+  // ============================================================
+  // PASO 8: FINALIZAR RUTA (Automático después de descarga)
+  // ============================================================
+
+  Future<void> _paso8_FinalizarRuta(Position pos, bool online) async {
+    debugPrint('✅ PASO 8: Finalizar ruta (${online ? "online" : "offline"})');
+
+    if (online) {
+      try {
+        final response = await _viajeRepository.finalizarRuta(
+          asignacionId: asignacionId,
+          lat: pos.latitude,
+          lng: pos.longitude,
+          observacionesFinales: comentarioTemp.value.isNotEmpty
+              ? comentarioTemp.value
               : null,
         );
 
         if (response.success) {
           _sincronizarEstadoDesdeBackend(response.estadoNuevo);
-          _mostrarNotificacion('¡Viaje completado!', 'Excelente trabajo');
           trackingController.detenerTracking();
+          _mostrarNotificacion('¡Viaje completado!', 'Excelente trabajo');
           _limpiarFormulario();
         } else {
           throw Exception(response.message);
         }
       } on NetworkException catch (e) {
-        debugPrint('📴 Sin conexión, guardando offline: ${e.message}');
-        await _guardarAccionOffline('confirmar_descarga', pos);
+        debugPrint('📴 Sin conexión: ${e.message}');
+        await _guardarAccionOffline('finalizar_ruta', pos);
         await _cambiarEstadoLocal(EstadoViaje.completado);
         trackingController.detenerTracking();
         _mostrarNotificacion(
@@ -649,13 +701,10 @@ class ViajeController extends GetxController {
         _limpiarFormulario();
       }
     } else {
-      await _guardarAccionOffline('confirmar_descarga', pos);
+      await _guardarAccionOffline('finalizar_ruta', pos);
       await _cambiarEstadoLocal(EstadoViaje.completado);
       trackingController.detenerTracking();
-      _mostrarNotificacion(
-        'Modo Offline',
-        '¡Viaje completado! Se sincronizará cuando recuperes conexión.',
-      );
+      _mostrarNotificacion('Modo Offline', '¡Viaje completado!');
       _limpiarFormulario();
     }
   }
@@ -675,6 +724,10 @@ class ViajeController extends GetxController {
         'evidencias': evidenciasSubidas.toList(),
         'pesoBruto': pesoBrutoTemp.value,
         'pesoTara': pesoTaraTemp.value,
+        'palaOperativa': palaOperativa.value,
+        'mineralVisible': mineralVisible.value,
+        'mineralCargadoCompletamente': mineralCargadoCompletamente.value,
+        'confirmacionLlegada': confirmacionLlegada.value,
         'timestamp': DateTime.now().toIso8601String(),
       },
       timestamp: DateTime.now(),
@@ -730,19 +783,16 @@ class ViajeController extends GetxController {
           fallidas++;
           debugPrint('❌ Error sincronizando acción ${accion.tipo}: $e');
 
-          // Si es error de red, detener sincronización
           if (e is NetworkException) {
             debugPrint('📴 Conexión perdida, deteniendo sincronización');
             break;
           }
 
-          // Incrementar intentos y actualizar
           final accionActualizada = accion.copyWith(
             intentos: accion.intentos + 1,
           );
           await _offlineStorage.updateAccionOffline(accionActualizada);
 
-          // Si ya se intentó muchas veces, descartar
           if (accionActualizada.intentos >= 3) {
             debugPrint(
               '⚠️ Acción descartada después de 3 intentos: ${accion.tipo}',
@@ -752,7 +802,6 @@ class ViajeController extends GetxController {
         }
       }
 
-      // Marcar como sincronizadas
       if (accionesSincronizadas.isNotEmpty) {
         await _offlineStorage.markAccionesSynced(accionesSincronizadas);
         accionesPendientes.removeWhere(
@@ -798,8 +847,10 @@ class ViajeController extends GetxController {
           asignacionId: asignacionId,
           lat: lat,
           lng: lng,
+          palaOperativa: datos['palaOperativa'] ?? true,
+          mineralVisible: datos['mineralVisible'] ?? true,
           observaciones: datos['observaciones'],
-          fotosUrls: List<String>.from(datos['evidencias'] ?? []),
+          fotoReferenciaUrl: (datos['evidencias'] as List?)?.firstOrNull,
         );
         break;
 
@@ -808,15 +859,18 @@ class ViajeController extends GetxController {
           asignacionId: asignacionId,
           lat: lat,
           lng: lng,
+          mineralCargadoCompletamente:
+              datos['mineralCargadoCompletamente'] ?? true,
           observaciones: datos['observaciones'],
-          fotosUrls: List<String>.from(datos['evidencias'] ?? []),
+          fotoCamionCargadoUrl: (datos['evidencias'] as List?)?.firstOrNull,
         );
         break;
 
       case 'registrar_pesaje_coop':
-        await _viajeRepository.registrarPesaje(
+        await _viajeRepository.registrarPesajeCooperativa(
           asignacionId: asignacionId,
-          tipoPesaje: 'cooperativa',
+          lat: lat,
+          lng: lng,
           pesoBrutoKg: datos['pesoBruto'],
           pesoTaraKg: datos['pesoTara'],
           observaciones: datos['observaciones'],
@@ -825,9 +879,10 @@ class ViajeController extends GetxController {
         break;
 
       case 'registrar_pesaje_destino':
-        await _viajeRepository.registrarPesaje(
+        await _viajeRepository.registrarPesajeDestino(
           asignacionId: asignacionId,
-          tipoPesaje: 'destino',
+          lat: lat,
+          lng: lng,
           pesoBrutoKg: datos['pesoBruto'],
           pesoTaraKg: datos['pesoTara'],
           observaciones: datos['observaciones'],
@@ -835,11 +890,13 @@ class ViajeController extends GetxController {
         );
         break;
 
-      case 'iniciar_descarga':
-        await _viajeRepository.iniciarDescarga(
+      case 'confirmar_llegada_almacen':
+        await _viajeRepository.confirmarLlegadaAlmacen(
           asignacionId: asignacionId,
           lat: lat,
           lng: lng,
+          confirmacionLlegada: datos['confirmacionLlegada'] ?? true,
+          observaciones: datos['observaciones'],
         );
         break;
 
@@ -849,7 +906,15 @@ class ViajeController extends GetxController {
           lat: lat,
           lng: lng,
           observaciones: datos['observaciones'],
-          fotosUrls: List<String>.from(datos['evidencias'] ?? []),
+        );
+        break;
+
+      case 'finalizar_ruta':
+        await _viajeRepository.finalizarRuta(
+          asignacionId: asignacionId,
+          lat: lat,
+          lng: lng,
+          observacionesFinales: datos['observaciones'],
         );
         break;
 
@@ -952,6 +1017,12 @@ class ViajeController extends GetxController {
   void actualizarComentario(String valor) => comentarioTemp.value = valor;
   void actualizarPesoBruto(double valor) => pesoBrutoTemp.value = valor;
   void actualizarPesoTara(double valor) => pesoTaraTemp.value = valor;
+  void actualizarPalaOperativa(bool valor) => palaOperativa.value = valor;
+  void actualizarMineralVisible(bool valor) => mineralVisible.value = valor;
+  void actualizarMineralCargado(bool valor) =>
+      mineralCargadoCompletamente.value = valor;
+  void actualizarConfirmacionLlegada(bool valor) =>
+      confirmacionLlegada.value = valor;
 
   double get pesoNetoCalculado {
     if (pesoBrutoTemp.value <= 0 || pesoTaraTemp.value <= 0) return 0;
@@ -965,6 +1036,10 @@ class ViajeController extends GetxController {
     pesoTaraTemp.value = 0.0;
     evidenciasTemporales.clear();
     evidenciasSubidas.clear();
+    palaOperativa.value = true;
+    mineralVisible.value = true;
+    mineralCargadoCompletamente.value = true;
+    confirmacionLlegada.value = true;
     debugPrint('🧹 Formulario limpiado');
   }
 
@@ -1005,7 +1080,7 @@ class ViajeController extends GetxController {
       case EstadoViaje.enCaminoBalanzaCoop:
       case EstadoViaje.enCaminoBalanzaDestino:
         return TrackingConfig.radioBalanza;
-      case EstadoViaje.rutaCompletada:
+      case EstadoViaje.enCaminoAlmacenDestino:
         return TrackingConfig.radioAlmacen;
       default:
         return TrackingConfig.radioMina;
@@ -1029,11 +1104,10 @@ class ViajeController extends GetxController {
       case EstadoViaje.enCaminoMina:
         return lote.puntoOrigen;
       case EstadoViaje.enCaminoBalanzaCoop:
-      case EstadoViaje.carguioCompletado:
         return lote.puntoBalanzaCoop;
       case EstadoViaje.enCaminoBalanzaDestino:
         return lote.puntoBalanzaDestino;
-      case EstadoViaje.rutaCompletada:
+      case EstadoViaje.enCaminoAlmacenDestino:
         return lote.puntoAlmacenDestino;
       default:
         return null;
@@ -1054,21 +1128,13 @@ class ViajeController extends GetxController {
       case EstadoViaje.enCaminoMina:
         return dentroDeGeofence.value ? 'Confirmar Llegada' : 'En camino...';
       case EstadoViaje.esperandoCarguio:
-        return 'Iniciar Carga';
-      case EstadoViaje.cargandoMineral:
-        return 'Finalizar Carga';
-      case EstadoViaje.carguioCompletado:
-        return 'Continuar Viaje';
+        return 'Confirmar Carguío';
       case EstadoViaje.enCaminoBalanzaCoop:
         return dentroDeGeofence.value ? 'Registrar Pesaje' : 'En camino...';
-      case EstadoViaje.pesajeBalanzaCoop:
-        return 'Confirmar Pesaje';
       case EstadoViaje.enCaminoBalanzaDestino:
         return dentroDeGeofence.value ? 'Registrar Pesaje' : 'En camino...';
-      case EstadoViaje.pesajeBalanzaDestino:
-        return 'Confirmar Pesaje';
-      case EstadoViaje.rutaCompletada:
-        return dentroDeGeofence.value ? 'Iniciar Descarga' : 'En camino...';
+      case EstadoViaje.enCaminoAlmacenDestino:
+        return dentroDeGeofence.value ? 'Confirmar Llegada' : 'En camino...';
       case EstadoViaje.descargando:
         return 'Finalizar Descarga';
       case EstadoViaje.completado:
@@ -1085,18 +1151,12 @@ class ViajeController extends GetxController {
       case EstadoViaje.enCaminoMina:
       case EstadoViaje.enCaminoBalanzaCoop:
       case EstadoViaje.enCaminoBalanzaDestino:
-      case EstadoViaje.rutaCompletada:
+      case EstadoViaje.enCaminoAlmacenDestino:
         return dentroDeGeofence.value
             ? Icons.check_rounded
             : Icons.navigation_rounded;
       case EstadoViaje.esperandoCarguio:
-      case EstadoViaje.cargandoMineral:
         return Icons.inventory_2_rounded;
-      case EstadoViaje.carguioCompletado:
-        return Icons.arrow_forward_rounded;
-      case EstadoViaje.pesajeBalanzaCoop:
-      case EstadoViaje.pesajeBalanzaDestino:
-        return Icons.scale_rounded;
       case EstadoViaje.descargando:
         return Icons.download_rounded;
       case EstadoViaje.completado:
@@ -1120,20 +1180,10 @@ class ViajeController extends GetxController {
       case EstadoViaje.enCaminoMina:
       case EstadoViaje.enCaminoBalanzaCoop:
       case EstadoViaje.enCaminoBalanzaDestino:
-      case EstadoViaje.rutaCompletada:
+      case EstadoViaje.enCaminoAlmacenDestino:
         return dentroDeGeofence.value;
       case EstadoViaje.esperandoCarguio:
-        return true;
-      case EstadoViaje.cargandoMineral:
         return evidenciasTemporales.isNotEmpty || evidenciasSubidas.isNotEmpty;
-      case EstadoViaje.carguioCompletado:
-        return true;
-      case EstadoViaje.pesajeBalanzaCoop:
-      case EstadoViaje.pesajeBalanzaDestino:
-        return pesoBrutoTemp.value > 0 &&
-            pesoTaraTemp.value > 0 &&
-            pesoTaraTemp.value < pesoBrutoTemp.value &&
-            (evidenciasTemporales.isNotEmpty || evidenciasSubidas.isNotEmpty);
       case EstadoViaje.descargando:
         return evidenciasTemporales.isNotEmpty || evidenciasSubidas.isNotEmpty;
       case EstadoViaje.completado:
@@ -1150,21 +1200,13 @@ class ViajeController extends GetxController {
       case EstadoViaje.enCaminoMina:
         return 'Dirígete a la mina ${loteDetalle.value?.minaNombre ?? ""}';
       case EstadoViaje.esperandoCarguio:
-        return 'Esperando turno para cargar';
-      case EstadoViaje.cargandoMineral:
-        return 'Cargando mineral en el camión';
-      case EstadoViaje.carguioCompletado:
-        return 'Carga lista, continúa el viaje';
+        return 'Confirma cuando el carguío esté completo';
       case EstadoViaje.enCaminoBalanzaCoop:
         return 'Hacia balanza de cooperativa';
-      case EstadoViaje.pesajeBalanzaCoop:
-        return 'Registra el pesaje';
       case EstadoViaje.enCaminoBalanzaDestino:
         return 'Hacia balanza de destino';
-      case EstadoViaje.pesajeBalanzaDestino:
-        return 'Registra el pesaje final';
-      case EstadoViaje.rutaCompletada:
-        return 'Llegando al punto de descarga';
+      case EstadoViaje.enCaminoAlmacenDestino:
+        return 'Hacia almacén de descarga';
       case EstadoViaje.descargando:
         return 'Descargando mineral';
       case EstadoViaje.completado:
