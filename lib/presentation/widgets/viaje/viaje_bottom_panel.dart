@@ -1,10 +1,10 @@
 // lib/presentation/widgets/viaje/viaje_bottom_panel.dart
 
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:sumajflow_movil/data/enums/estado_viaje.dart';
 import 'package:sumajflow_movil/data/models/lote_models.dart';
 
-/// Panel inferior deslizable con información del viaje
 class ViajeBottomPanel extends StatelessWidget {
   final EstadoViaje estado;
   final WaypointModel? destino;
@@ -50,7 +50,6 @@ class ViajeBottomPanel extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Indicador de arrastre
             Padding(
               padding: const EdgeInsets.only(top: 12, bottom: 8),
               child: Container(
@@ -62,34 +61,30 @@ class ViajeBottomPanel extends StatelessWidget {
                 ),
               ),
             ),
-
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 children: [
-                  // Destino actual
                   if (destino != null) ...[
                     _buildDestinoCard(theme, colorEstado),
                     const SizedBox(height: 16),
                   ],
-
-                  // Info rápida
                   Row(
                     children: [
                       if (codigoLote != null)
                         Expanded(
                           child: _buildInfoChip(
                             theme,
-                            icon: Icons.local_shipping_rounded,
+                            icon: FontAwesomeIcons.truck,
                             label: 'Código',
-                            value: codigoLote!,
+                            value: "00$codigoLote",
                           ),
                         ),
                       if (codigoLote != null) const SizedBox(width: 12),
                       Expanded(
                         child: _buildInfoChip(
                           theme,
-                          icon: Icons.speed_rounded,
+                          icon: FontAwesomeIcons.gaugeHigh,
                           label: 'Velocidad',
                           value: velocidad != null
                               ? '${velocidad!.toInt()} km/h'
@@ -98,18 +93,12 @@ class ViajeBottomPanel extends StatelessWidget {
                       ),
                     ],
                   ),
-
-                  // Contenido extra (formularios, etc)
                   if (contenidoExtra != null) ...[
                     const SizedBox(height: 16),
                     contenidoExtra!,
                   ],
-
                   const SizedBox(height: 20),
-
-                  // Botón de acción
                   botonAccion,
-
                   const SizedBox(height: 16),
                 ],
               ),
@@ -121,71 +110,81 @@ class ViajeBottomPanel extends StatelessWidget {
   }
 
   Widget _buildDestinoCard(ThemeData theme, Color colorEstado) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: colorEstado.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colorEstado.withValues(alpha: 0.2)),
-      ),
-      child: Row(
-        children: [
-          // Icono del destino
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: _hexToColor(destino!.color),
-              borderRadius: BorderRadius.circular(12),
+    return TweenAnimationBuilder<double>(
+      duration: const Duration(milliseconds: 400),
+      tween: Tween(begin: 0.0, end: 1.0),
+      curve: Curves.easeOut,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 10 * (1 - value)),
+            child: child,
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: colorEstado.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: colorEstado.withValues(alpha: 0.2)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: _hexToColor(destino!.color),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Center(child: _getDestinoIcon(destino!.iconoEmoji)),
             ),
-            child: Center(
-              child: Text(
-                destino!.iconoEmoji,
-                style: const TextStyle(fontSize: 24),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Próximo destino',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    destino!.nombre,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
             ),
-          ),
-          const SizedBox(width: 14),
-          // Info del destino
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(
-                  'Próximo destino',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                    fontWeight: FontWeight.w500,
-                  ),
+                FaIcon(
+                  FontAwesomeIcons.locationArrow,
+                  color: colorEstado,
+                  size: 18,
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 Text(
-                  destino!.nombre,
+                  distancia,
                   style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.bold,
+                    color: colorEstado,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
-          ),
-          // Distancia
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Icon(Icons.navigation_rounded, color: colorEstado, size: 20),
-              const SizedBox(height: 4),
-              Text(
-                distancia,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: colorEstado,
-                ),
-              ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -204,7 +203,7 @@ class ViajeBottomPanel extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(icon, size: 20, color: theme.colorScheme.primary),
+          FaIcon(icon, size: 18, color: theme.colorScheme.primary),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -231,6 +230,20 @@ class ViajeBottomPanel extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _getDestinoIcon(String iconoEmoji) {
+    // Mapeo de emojis a Font Awesome icons
+    final iconMap = {
+      '⛏️': FontAwesomeIcons.mountain,
+      '🏭': FontAwesomeIcons.industry,
+      '⚖️': FontAwesomeIcons.scaleBalanced,
+      '🏢': FontAwesomeIcons.building,
+    };
+
+    final icon = iconMap[iconoEmoji] ?? FontAwesomeIcons.locationDot;
+
+    return FaIcon(icon, size: 24, color: Colors.white);
   }
 
   Color _hexToColor(String hexString) {

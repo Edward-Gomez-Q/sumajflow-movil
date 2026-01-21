@@ -118,11 +118,38 @@ class ViajeController extends GetxController {
         '🎯 Inicializando ViajeController - AsignacionId: $asignacionId',
       );
 
-      // 1. Cargar detalle del lote si no existe
       if (loteDetalle.value == null) {
         final detalle = await _lotesRepository.getDetalleLote(asignacionId);
         loteDetalle.value = detalle;
         _sincronizarEstadoDesdeBackend(detalle.estado);
+      }
+      if (estadoActual.value == EstadoViaje.esperandoIniciar) {
+        debugPrint('📍 Obteniendo ubicación inicial antes de iniciar viaje...');
+        final hasPermission = await _locationService.checkPermissions();
+        if (!hasPermission) {
+          throw Exception(
+            'Se requieren permisos de ubicación. Por favor, acepta los permisos en la configuración.',
+          );
+        }
+
+        final gpsEnabled = await _locationService.checkGpsStatus();
+        if (!gpsEnabled) {
+          throw Exception(
+            'GPS deshabilitado. Por favor, activa el GPS para continuar.',
+          );
+        }
+
+        final pos = await _locationService.getCurrentPosition();
+        if (pos != null) {
+          trackingController.currentPosition.value = pos;
+          debugPrint(
+            '✅ Ubicación inicial obtenida: ${pos.latitude.toStringAsFixed(6)}, ${pos.longitude.toStringAsFixed(6)}',
+          );
+        } else {
+          debugPrint(
+            '⚠️ No se pudo obtener ubicación inicial, se reintentará al presionar "Iniciar Viaje"',
+          );
+        }
       }
 
       // 2. Si el viaje ya inició, iniciar tracking
@@ -199,9 +226,57 @@ class ViajeController extends GetxController {
     try {
       isLoading.value = true;
 
-      final pos = trackingController.currentPosition.value;
+      // ⭐ CAMBIO 2: VALIDAR Y OBTENER UBICACIÓN SI NO ESTÁ DISPONIBLE
+      // Este es el cambio principal que soluciona el error
+      Position? pos = trackingController.currentPosition.value;
+
+      // ⭐ CAMBIO 2.1: Si no hay ubicación guardada, intentamos obtenerla
       if (pos == null) {
-        throw Exception('No se pudo obtener la ubicación actual');
+        debugPrint('📍 Ubicación no disponible, obteniendo posición actual...');
+
+        // ⭐ CAMBIO 2.2: Verificar permisos antes de intentar obtener ubicación
+        final hasPermission = await _locationService.checkPermissions();
+        if (!hasPermission) {
+          throw Exception(
+            'Se requieren permisos de ubicación para continuar. '
+            'Por favor, acepta los permisos en la configuración de tu dispositivo.',
+          );
+        }
+
+        // ⭐ CAMBIO 2.3: Verificar que el GPS esté habilitado
+        final gpsEnabled = await _locationService.checkGpsStatus();
+        if (!gpsEnabled) {
+          throw Exception(
+            'GPS deshabilitado. Por favor, activa el GPS en la configuración de tu dispositivo.',
+          );
+        }
+
+        // ⭐ CAMBIO 2.4: Intentar obtener la ubicación actual
+        pos = await _locationService.getCurrentPosition();
+
+        // ⭐ CAMBIO 2.5: Si después de intentar obtenerla sigue siendo null, lanzar error descriptivo
+        if (pos == null) {
+          throw Exception(
+            'No se pudo obtener tu ubicación actual. '
+            'Asegúrate de estar en un lugar con buena señal GPS e intenta nuevamente.',
+          );
+        }
+
+        // ⭐ CAMBIO 2.6: Guardar la ubicación en el tracking controller
+        // para que esté disponible en futuras llamadas
+        trackingController.currentPosition.value = pos;
+        debugPrint(
+          '✅ Ubicación obtenida exitosamente: '
+          '${pos.latitude.toStringAsFixed(6)}, ${pos.longitude.toStringAsFixed(6)} '
+          '(precisión: ${pos.accuracy.toStringAsFixed(1)}m)',
+        );
+      } else {
+        // ⭐ CAMBIO 2.7: Si ya hay ubicación, solo logueamos que la estamos usando
+        debugPrint(
+          '📍 Usando ubicación actual: '
+          '${pos.latitude.toStringAsFixed(6)}, ${pos.longitude.toStringAsFixed(6)} '
+          '(precisión: ${pos.accuracy.toStringAsFixed(1)}m)',
+        );
       }
 
       debugPrint('🎬 Ejecutando acción para estado: ${estadoActual.value}');

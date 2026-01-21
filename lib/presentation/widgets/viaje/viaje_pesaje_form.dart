@@ -2,8 +2,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
-/// Formulario para registrar datos de pesaje
 class ViajePesajeForm extends StatefulWidget {
   final double? pesoBrutoInicial;
   final double? pesoTaraInicial;
@@ -83,7 +83,6 @@ class _ViajePesajeFormState extends State<ViajePesajeForm> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
           Row(
             children: [
               Container(
@@ -92,10 +91,10 @@ class _ViajePesajeFormState extends State<ViajePesajeForm> {
                   color: theme.colorScheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(
-                  Icons.scale_rounded,
+                child: FaIcon(
+                  FontAwesomeIcons.scaleBalanced,
                   color: theme.colorScheme.primary,
-                  size: 24,
+                  size: 20,
                 ),
               ),
               const SizedBox(width: 12),
@@ -123,8 +122,6 @@ class _ViajePesajeFormState extends State<ViajePesajeForm> {
             ],
           ),
           const SizedBox(height: 20),
-
-          // Campos de peso
           Row(
             children: [
               Expanded(
@@ -133,7 +130,7 @@ class _ViajePesajeFormState extends State<ViajePesajeForm> {
                   controller: _pesoBrutoController,
                   label: 'Peso Bruto',
                   hint: '0.00',
-                  icono: Icons.inventory_2_rounded,
+                  icono: FontAwesomeIcons.weightHanging,
                   onChanged: (valor) {
                     setState(() {
                       _pesoBruto = double.tryParse(valor) ?? 0.0;
@@ -149,7 +146,7 @@ class _ViajePesajeFormState extends State<ViajePesajeForm> {
                   controller: _pesoTaraController,
                   label: 'Peso Tara',
                   hint: '0.00',
-                  icono: Icons.local_shipping_rounded,
+                  icono: FontAwesomeIcons.truck,
                   onChanged: (valor) {
                     setState(() {
                       _pesoTara = double.tryParse(valor) ?? 0.0;
@@ -160,12 +157,10 @@ class _ViajePesajeFormState extends State<ViajePesajeForm> {
               ),
             ],
           ),
-
-          // Peso neto calculado
           if (widget.mostrarPesoNeto) ...[
             const SizedBox(height: 16),
             AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
+              duration: const Duration(milliseconds: 300),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -232,8 +227,6 @@ class _ViajePesajeFormState extends State<ViajePesajeForm> {
               ),
             ),
           ],
-
-          // Validaciones
           if (_pesoTara > 0 && _pesoBruto > 0 && _pesoTara >= _pesoBruto) ...[
             const SizedBox(height: 12),
             Container(
@@ -244,9 +237,9 @@ class _ViajePesajeFormState extends State<ViajePesajeForm> {
               ),
               child: Row(
                 children: [
-                  Icon(
-                    Icons.warning_rounded,
-                    size: 18,
+                  FaIcon(
+                    FontAwesomeIcons.triangleExclamation,
+                    size: 16,
                     color: theme.colorScheme.error,
                   ),
                   const SizedBox(width: 8),
@@ -330,7 +323,6 @@ class _ViajePesajeFormState extends State<ViajePesajeForm> {
   }
 }
 
-/// Widget para mostrar datos de pesaje (solo lectura)
 class ViajePesajeDisplay extends StatelessWidget {
   final double pesoBruto;
   final double pesoTara;
@@ -370,9 +362,9 @@ class ViajePesajeDisplay extends StatelessWidget {
                 if (titulo != null)
                   Row(
                     children: [
-                      Icon(
-                        Icons.scale_rounded,
-                        size: 18,
+                      FaIcon(
+                        FontAwesomeIcons.scaleBalanced,
+                        size: 16,
                         color: theme.colorScheme.primary,
                       ),
                       const SizedBox(width: 8),

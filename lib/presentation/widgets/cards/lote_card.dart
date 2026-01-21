@@ -60,7 +60,7 @@ class LoteCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      loteCode,
+                      'Lote: 00$loteCode',
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),

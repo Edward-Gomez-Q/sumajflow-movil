@@ -1,6 +1,7 @@
 // lib/presentation/widgets/viaje/viaje_alert_card.dart
 
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 enum ViajeAlertType { info, success, warning, error }
 
@@ -21,49 +22,59 @@ class ViajeAlertCard extends StatelessWidget {
     final theme = Theme.of(context);
     final config = _getConfigForType(tipo);
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: config.backgroundColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: config.borderColor, width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: config.shadowColor,
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          // Icono
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: config.iconBackgroundColor,
-              shape: BoxShape.circle,
+    return TweenAnimationBuilder<double>(
+      duration: const Duration(milliseconds: 400),
+      tween: Tween(begin: 0.0, end: 1.0),
+      curve: Curves.easeOutBack,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.scale(scale: 0.8 + (0.2 * value), child: child),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: config.backgroundColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: config.borderColor, width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: config.shadowColor,
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
-            child: Icon(
-              iconoCustom ?? config.icon,
-              color: config.iconColor,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
-
-          // Mensaje
-          Expanded(
-            child: Text(
-              mensaje,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: config.textColor,
-                fontWeight: FontWeight.w500,
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: config.iconBackgroundColor,
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: FaIcon(
+                  iconoCustom ?? config.icon,
+                  color: config.iconColor,
+                  size: 18,
+                ),
               ),
             ),
-          ),
-        ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                mensaje,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: config.textColor,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -72,7 +83,7 @@ class ViajeAlertCard extends StatelessWidget {
     switch (tipo) {
       case ViajeAlertType.info:
         return _AlertConfig(
-          icon: Icons.info_outline_rounded,
+          icon: FontAwesomeIcons.circleInfo,
           backgroundColor: const Color(0xFF3B82F6).withValues(alpha: 0.1),
           borderColor: const Color(0xFF3B82F6).withValues(alpha: 0.3),
           iconBackgroundColor: const Color(0xFF3B82F6).withValues(alpha: 0.15),
@@ -83,7 +94,7 @@ class ViajeAlertCard extends StatelessWidget {
 
       case ViajeAlertType.success:
         return _AlertConfig(
-          icon: Icons.check_circle_outline_rounded,
+          icon: FontAwesomeIcons.circleCheck,
           backgroundColor: const Color(0xFF10B981).withValues(alpha: 0.1),
           borderColor: const Color(0xFF10B981).withValues(alpha: 0.3),
           iconBackgroundColor: const Color(0xFF10B981).withValues(alpha: 0.15),
@@ -94,7 +105,7 @@ class ViajeAlertCard extends StatelessWidget {
 
       case ViajeAlertType.warning:
         return _AlertConfig(
-          icon: Icons.warning_amber_rounded,
+          icon: FontAwesomeIcons.triangleExclamation,
           backgroundColor: const Color(0xFFF59E0B).withValues(alpha: 0.1),
           borderColor: const Color(0xFFF59E0B).withValues(alpha: 0.3),
           iconBackgroundColor: const Color(0xFFF59E0B).withValues(alpha: 0.15),
@@ -105,7 +116,7 @@ class ViajeAlertCard extends StatelessWidget {
 
       case ViajeAlertType.error:
         return _AlertConfig(
-          icon: Icons.error_outline_rounded,
+          icon: FontAwesomeIcons.circleExclamation,
           backgroundColor: const Color(0xFFEF4444).withValues(alpha: 0.1),
           borderColor: const Color(0xFFEF4444).withValues(alpha: 0.3),
           iconBackgroundColor: const Color(0xFFEF4444).withValues(alpha: 0.15),

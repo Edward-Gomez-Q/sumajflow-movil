@@ -175,7 +175,7 @@ class _LotesPageState extends State<LotesPage> {
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: LoteCard(
-                        loteCode: lote.codigoLote,
+                        loteCode: lote.loteId.toString(),
                         destino: lote.destinoNombre ?? lote.minaNombre,
                         estado: lote.estadoDisplay,
                         fecha: _formatearFecha(lote.fechaAsignacion),

@@ -1,6 +1,7 @@
 // lib/presentation/pages/viaje/views/viaje_turno_carga_view.dart
 
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
 import 'package:sumajflow_movil/presentation/getx/viaje_controller.dart';
 import 'package:sumajflow_movil/presentation/widgets/viaje/viaje_estado_header.dart';
@@ -29,21 +30,39 @@ class ViajeTurnoCargaView extends StatelessWidget {
                     subtitulo: controller.descripcionEstadoActual,
                   ),
                   const SizedBox(height: 32),
-
-                  // Icono de espera
-                  Container(
-                    width: 120,
-                    height: 120,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: const Color(0xFF8B5CF6).withValues(alpha: 0.15),
-                    ),
-                    child: const Center(
-                      child: Text('⏳', style: TextStyle(fontSize: 56)),
+                  TweenAnimationBuilder<double>(
+                    duration: const Duration(milliseconds: 800),
+                    tween: Tween(begin: 0.0, end: 1.0),
+                    curve: Curves.elasticOut,
+                    builder: (context, value, child) {
+                      return Transform.scale(scale: value, child: child);
+                    },
+                    child: Container(
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: const Color(0xFF8B5CF6).withValues(alpha: 0.15),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(
+                              0xFF8B5CF6,
+                            ).withValues(alpha: 0.2),
+                            blurRadius: 20,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: const Center(
+                        child: FaIcon(
+                          FontAwesomeIcons.hourglassHalf,
+                          size: 48,
+                          color: Color(0xFF8B5CF6),
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 24),
-
                   Text(
                     'Esperando Turno de Carga',
                     style: theme.textTheme.titleLarge?.copyWith(
@@ -51,7 +70,6 @@ class ViajeTurnoCargaView extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-
                   Text(
                     'Espera tu turno para iniciar la carga del mineral.',
                     style: theme.textTheme.bodyMedium?.copyWith(
@@ -60,7 +78,6 @@ class ViajeTurnoCargaView extends StatelessWidget {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 32),
-
                   ViajeObservacionField(
                     label: 'Observaciones',
                     onChanged: controller.actualizarComentario,

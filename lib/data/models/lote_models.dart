@@ -80,8 +80,6 @@ class LoteAsignadoModel {
   }
 }
 
-// ... resto de los modelos (WaypointModel, LoteDetalleViajeModel) se mantienen igual
-/// Modelo para detalle de lote para viaje
 class LoteDetalleViajeModel {
   final int asignacionId;
   final int loteId;

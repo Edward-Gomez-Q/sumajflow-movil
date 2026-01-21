@@ -1,6 +1,7 @@
 // lib/presentation/pages/viaje/views/viaje_pesaje_view.dart
 
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
 import 'package:sumajflow_movil/presentation/getx/viaje_controller.dart';
 import 'package:sumajflow_movil/presentation/widgets/viaje/viaje_estado_header.dart';
@@ -37,21 +38,39 @@ class ViajePesajeView extends StatelessWidget {
                     subtitulo: controller.descripcionEstadoActual,
                   ),
                   const SizedBox(height: 24),
-
-                  // Icono de balanza
-                  Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: const Color(0xFF06B6D4).withValues(alpha: 0.15),
-                    ),
-                    child: const Center(
-                      child: Text('⚖️', style: TextStyle(fontSize: 48)),
+                  TweenAnimationBuilder<double>(
+                    duration: const Duration(milliseconds: 800),
+                    tween: Tween(begin: 0.0, end: 1.0),
+                    curve: Curves.elasticOut,
+                    builder: (context, value, child) {
+                      return Transform.scale(scale: value, child: child);
+                    },
+                    child: Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: const Color(0xFF06B6D4).withValues(alpha: 0.15),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(
+                              0xFF06B6D4,
+                            ).withValues(alpha: 0.2),
+                            blurRadius: 20,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: const Center(
+                        child: FaIcon(
+                          FontAwesomeIcons.scaleBalanced,
+                          size: 40,
+                          color: Color(0xFF06B6D4),
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 24),
-
                   Text(
                     esCooperativa
                         ? 'Pesaje Balanza Cooperativa'
@@ -61,7 +80,6 @@ class ViajePesajeView extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-
                   Text(
                     esCooperativa
                         ? 'Primer pesaje del mineral'
@@ -71,61 +89,66 @@ class ViajePesajeView extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 24),
-
-                  // Formulario de pesaje
                   ViajePesajeForm(
                     onPesoBrutoChanged: controller.actualizarPesoBruto,
                     onPesoTaraChanged: controller.actualizarPesoTara,
                   ),
                   const SizedBox(height: 20),
-
-                  // Peso neto calculado
                   Obx(() {
                     final pesoNeto = controller.pesoNetoCalculado;
                     if (pesoNeto > 0) {
-                      return Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF10B981).withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
+                      return TweenAnimationBuilder<double>(
+                        duration: const Duration(milliseconds: 400),
+                        tween: Tween(begin: 0.0, end: 1.0),
+                        curve: Curves.easeOut,
+                        builder: (context, value, child) {
+                          return Opacity(
+                            opacity: value,
+                            child: Transform.scale(scale: value, child: child),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
                             color: const Color(
                               0xFF10B981,
-                            ).withValues(alpha: 0.3),
+                            ).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: const Color(
+                                0xFF10B981,
+                              ).withValues(alpha: 0.3),
+                            ),
                           ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              Icons.scale_rounded,
-                              color: Color(0xFF10B981),
-                              size: 24,
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              'Peso Neto: ${pesoNeto.toStringAsFixed(2)} kg',
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFF10B981),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const FaIcon(
+                                FontAwesomeIcons.weightHanging,
+                                color: Color(0xFF10B981),
+                                size: 20,
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: 12),
+                              Text(
+                                'Peso Neto: ${pesoNeto.toStringAsFixed(2)} kg',
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF10B981),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       );
                     }
                     return const SizedBox.shrink();
                   }),
                   const SizedBox(height: 20),
-
-                  // Alerta de evidencia
-                  ViajeAlertCard(
+                  const ViajeAlertCard(
                     mensaje: 'Toma una foto del ticket de pesaje',
                     tipo: ViajeAlertType.info,
                   ),
                   const SizedBox(height: 16),
-
-                  // Evidencias
                   Obx(() {
                     return ViajeEvidenciaUploader(
                       evidencias: controller.evidenciasTemporales,
@@ -137,8 +160,6 @@ class ViajePesajeView extends StatelessWidget {
                     );
                   }),
                   const SizedBox(height: 20),
-
-                  // Observaciones
                   ViajeObservacionField(
                     label: 'Observaciones del Pesaje',
                     onChanged: controller.actualizarComentario,

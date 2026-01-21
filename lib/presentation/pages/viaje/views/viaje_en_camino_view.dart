@@ -9,7 +9,6 @@ import 'package:sumajflow_movil/presentation/widgets/viaje/viaje_bottom_panel.da
 import 'package:sumajflow_movil/presentation/widgets/viaje/viaje_info_card.dart';
 import 'package:sumajflow_movil/presentation/widgets/viaje/viaje_observacion_field.dart';
 
-// TEMPORAL PARA DEBUG
 class ViajeEnCaminoView extends StatelessWidget {
   final ViajeController controller;
 
@@ -19,16 +18,11 @@ class ViajeEnCaminoView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Mapa ocupa el espacio disponible
         Expanded(
           child: Obx(() {
             final position =
                 controller.trackingController.currentPosition.value;
             final waypoint = controller.proximoWaypoint;
-
-            debugPrint(
-              '🗺️ Mapa - Pos: ${position?.latitude}, Way: ${waypoint?.latitud}',
-            );
 
             return Stack(
               children: [
@@ -37,16 +31,26 @@ class ViajeEnCaminoView extends StatelessWidget {
                   proximoWaypoint: waypoint,
                   estadoViaje: controller.estadoActual.value.valor,
                 ),
-
                 Obx(() {
                   if (controller.estaDentroDelGeofence) {
                     return Positioned(
                       top: 16,
                       left: 16,
                       right: 16,
-                      child: ViajeAlertCard(
-                        mensaje: '¡Has llegado a tu destino!',
-                        tipo: ViajeAlertType.success,
+                      child: TweenAnimationBuilder<double>(
+                        duration: const Duration(milliseconds: 400),
+                        tween: Tween(begin: 0.0, end: 1.0),
+                        curve: Curves.easeOutBack,
+                        builder: (context, value, child) {
+                          return Transform.translate(
+                            offset: Offset(0, -20 * (1 - value)),
+                            child: Opacity(opacity: value, child: child),
+                          );
+                        },
+                        child: const ViajeAlertCard(
+                          mensaje: '¡Has llegado a tu destino!',
+                          tipo: ViajeAlertType.success,
+                        ),
                       ),
                     );
                   }
@@ -56,8 +60,6 @@ class ViajeEnCaminoView extends StatelessWidget {
             );
           }),
         ),
-
-        // Panel inferior
         _buildPanelInferior(context),
       ],
     );
@@ -79,7 +81,7 @@ class ViajeEnCaminoView extends StatelessWidget {
         estado: controller.estadoActual.value,
         destino: controller.proximoWaypoint,
         distancia: controller.distanciaFormateada,
-        codigoLote: controller.loteDetalle.value?.codigoLote,
+        codigoLote: controller.loteDetalle.value?.loteId.toString(),
         velocidad:
             controller.trackingController.currentPosition.value?.speed != null
             ? controller.trackingController.currentPosition.value!.speed * 3.6

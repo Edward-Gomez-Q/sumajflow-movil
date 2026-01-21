@@ -1,8 +1,8 @@
 // lib/presentation/widgets/viaje/viaje_observacion_field.dart
 
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
-/// Campo de texto para observaciones/comentarios
 class ViajeObservacionField extends StatelessWidget {
   final String? valorInicial;
   final ValueChanged<String>? onChanged;
@@ -92,7 +92,6 @@ class ViajeObservacionField extends StatelessWidget {
   }
 }
 
-/// Widget de observación mostrada (solo lectura)
 class ViajeObservacionDisplay extends StatelessWidget {
   final String texto;
   final DateTime? timestamp;

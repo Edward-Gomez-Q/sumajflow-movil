@@ -14,7 +14,7 @@ class RouteNames {
   static const String notificaciones = '/notificaciones';
   static const String profile = '/profile';
 
-  // Rutas de detalle (sin bottom navigation)
+  // Rutas de detalle
   static const String loteDetalle = '/lote';
   static const String viaje = '/viaje';
   static const String tracking = '/tracking';

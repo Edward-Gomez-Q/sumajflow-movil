@@ -1,6 +1,7 @@
 // lib/presentation/pages/viaje/viaje_page.dart
 
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
 import 'package:sumajflow_movil/data/enums/estado_viaje.dart';
 import 'package:sumajflow_movil/data/models/lote_models.dart';
@@ -9,7 +10,6 @@ import 'package:sumajflow_movil/presentation/pages/viaje/widgets/viaje_state_han
 import 'package:sumajflow_movil/presentation/widgets/dialogs/confirmar_salida_tracking_dialog.dart';
 import 'package:sumajflow_movil/presentation/widgets/viaje/viaje_estado_header.dart';
 
-/// Página principal del viaje - Solo orchestrator
 class ViajePage extends StatelessWidget {
   final int asignacionId;
   final String controllerTag;
@@ -24,7 +24,6 @@ class ViajePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Inicializar controller
     final controller = Get.put(
       ViajeController(
         asignacionId: asignacionId,
@@ -50,7 +49,6 @@ class ViajePage extends StatelessWidget {
         backgroundColor: theme.scaffoldBackgroundColor,
         appBar: _buildAppBar(context, theme, controller),
         body: Obx(() {
-          // Estados de carga y error
           if (controller.isInitializing.value) {
             return _buildInitializingState(theme);
           }
@@ -63,7 +61,6 @@ class ViajePage extends StatelessWidget {
             return _buildPausedState(theme, controller);
           }
 
-          // Delegar a StateHandler
           return ViajeStateHandler(controller: controller);
         }),
       ),
@@ -77,7 +74,7 @@ class ViajePage extends StatelessWidget {
   ) {
     return AppBar(
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back_rounded),
+        icon: const FaIcon(FontAwesomeIcons.arrowLeft, size: 20),
         onPressed: () async {
           final confirmar = await _confirmarSalida(context, controller);
           if (confirmar && context.mounted) {
@@ -89,7 +86,6 @@ class ViajePage extends StatelessWidget {
       title: const Text('Viaje en Curso'),
       centerTitle: true,
       actions: [
-        // Indicador de conexión
         Obx(() {
           return Container(
             margin: const EdgeInsets.only(right: 8),
@@ -103,11 +99,11 @@ class ViajePage extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
+                FaIcon(
                   controller.isOnline
-                      ? Icons.cloud_done_rounded
-                      : Icons.cloud_off_rounded,
-                  size: 14,
+                      ? FontAwesomeIcons.cloud
+                      : FontAwesomeIcons.cloudArrowDown,
+                  size: 12,
                   color: controller.isOnline ? Colors.green : Colors.orange,
                 ),
                 const SizedBox(width: 4),
@@ -123,8 +119,6 @@ class ViajePage extends StatelessWidget {
             ),
           );
         }),
-
-        // Badge de estado compacto
         Obx(() {
           return Padding(
             padding: const EdgeInsets.only(right: 12),
@@ -143,28 +137,66 @@ class ViajePage extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          SizedBox(
-            width: 64,
-            height: 64,
-            child: CircularProgressIndicator(
-              strokeWidth: 4,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                theme.colorScheme.primary,
+          TweenAnimationBuilder<double>(
+            duration: const Duration(milliseconds: 1200),
+            tween: Tween(begin: 0.0, end: 1.0),
+            builder: (context, value, child) {
+              return Transform.scale(
+                scale: 0.8 + (0.2 * value),
+                child: Opacity(opacity: value, child: child),
+              );
+            },
+            child: Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: theme.colorScheme.primary.withValues(alpha: 0.1),
+              ),
+              child: Center(
+                child: SizedBox(
+                  width: 56,
+                  height: 56,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 4,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      theme.colorScheme.primary,
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
-          const SizedBox(height: 24),
-          Text(
-            'Preparando viaje...',
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Verificando ubicación y estado',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+          const SizedBox(height: 32),
+          TweenAnimationBuilder<double>(
+            duration: const Duration(milliseconds: 800),
+            tween: Tween(begin: 0.0, end: 1.0),
+            curve: Curves.easeOut,
+            builder: (context, value, child) {
+              return Opacity(
+                opacity: value,
+                child: Transform.translate(
+                  offset: Offset(0, 20 * (1 - value)),
+                  child: child,
+                ),
+              );
+            },
+            child: Column(
+              children: [
+                Text(
+                  'Preparando viaje...',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Verificando ubicación y estado',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -179,12 +211,30 @@ class ViajePage extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.error_outline_rounded,
-              size: 64,
-              color: theme.colorScheme.error.withValues(alpha: 0.7),
+            TweenAnimationBuilder<double>(
+              duration: const Duration(milliseconds: 600),
+              tween: Tween(begin: 0.0, end: 1.0),
+              curve: Curves.elasticOut,
+              builder: (context, value, child) {
+                return Transform.scale(scale: value, child: child);
+              },
+              child: Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: theme.colorScheme.error.withValues(alpha: 0.1),
+                ),
+                child: Center(
+                  child: FaIcon(
+                    FontAwesomeIcons.triangleExclamation,
+                    size: 36,
+                    color: theme.colorScheme.error.withValues(alpha: 0.8),
+                  ),
+                ),
+              ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
             Text(
               'Error al iniciar viaje',
               style: theme.textTheme.titleMedium?.copyWith(
@@ -199,7 +249,7 @@ class ViajePage extends StatelessWidget {
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -208,13 +258,13 @@ class ViajePage extends StatelessWidget {
                     Get.delete<ViajeController>(tag: controllerTag);
                     Get.back();
                   },
-                  icon: const Icon(Icons.arrow_back_rounded),
+                  icon: const FaIcon(FontAwesomeIcons.arrowLeft, size: 16),
                   label: const Text('Volver'),
                 ),
                 const SizedBox(width: 12),
                 FilledButton.icon(
                   onPressed: controller.refrescar,
-                  icon: const Icon(Icons.refresh_rounded),
+                  icon: const FaIcon(FontAwesomeIcons.arrowsRotate, size: 16),
                   label: const Text('Reintentar'),
                 ),
               ],
@@ -232,17 +282,34 @@ class ViajePage extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha: 0.2),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.pause_circle_rounded,
-                size: 60,
-                color: Colors.orange,
+            TweenAnimationBuilder<double>(
+              duration: const Duration(milliseconds: 800),
+              tween: Tween(begin: 0.0, end: 1.0),
+              curve: Curves.elasticOut,
+              builder: (context, value, child) {
+                return Transform.scale(scale: value, child: child);
+              },
+              child: Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  color: Colors.orange.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.orange.withValues(alpha: 0.2),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: const Center(
+                  child: FaIcon(
+                    FontAwesomeIcons.circlePause,
+                    size: 56,
+                    color: Colors.orange,
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 32),
@@ -263,7 +330,7 @@ class ViajePage extends StatelessWidget {
             const SizedBox(height: 40),
             FilledButton.icon(
               onPressed: () => controller.trackingController.reanudarTracking(),
-              icon: const Icon(Icons.play_arrow_rounded),
+              icon: const FaIcon(FontAwesomeIcons.play, size: 16),
               label: const Text('Reanudar seguimiento'),
             ),
           ],

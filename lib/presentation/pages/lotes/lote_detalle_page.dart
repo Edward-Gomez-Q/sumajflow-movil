@@ -1,9 +1,11 @@
 // lib/presentation/pages/lotes/lote_detalle_page.dart
 
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sumajflow_movil/config/routes/route_names.dart';
+import 'package:sumajflow_movil/core/theme/colors.dart';
 import 'package:sumajflow_movil/data/models/lote_models.dart';
 import 'package:sumajflow_movil/presentation/getx/lote_detalle_controller.dart';
 import 'package:sumajflow_movil/presentation/widgets/maps/map_four_waypoints.dart';
@@ -44,18 +46,30 @@ class _LoteDetallePageState extends State<LoteDetallePage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    //   Configurar navegación
+    // Configurar navegación
     controller.configurarNavegacion(() {
       context.push('${RouteNames.trazabilidad}/${widget.asignacionId}');
     });
 
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
+      backgroundColor: AppColors.lightBackground,
       appBar: AppBar(
-        title: const Text('Detalle de Viaje'),
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        title: Row(
+          children: [
+            FaIcon(
+              FontAwesomeIcons.route,
+              size: 18,
+              color: theme.colorScheme.primary,
+            ),
+            const SizedBox(width: 12),
+            const Text('Detalle de Viaje'),
+          ],
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh_rounded),
+            icon: const FaIcon(FontAwesomeIcons.arrowsRotate, size: 16),
             onPressed: controller.refrescar,
           ),
         ],
@@ -80,7 +94,7 @@ class _LoteDetallePageState extends State<LoteDetallePage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildCompactHeader(theme, lote, controller),
+                      _buildHeader(theme, lote, controller),
                       _buildMapa(lote),
                       _buildInfoViaje(theme, lote),
                       _buildWaypoints(theme, lote, controller),
@@ -111,28 +125,39 @@ class _LoteDetallePageState extends State<LoteDetallePage> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           SizedBox(
-            width: 48,
-            height: 48,
+            width: 40,
+            height: 40,
             child: CircularProgressIndicator(
-              strokeWidth: 3,
+              strokeWidth: 2.5,
               valueColor: AlwaysStoppedAnimation<Color>(
                 theme.colorScheme.primary,
               ),
             ),
           ),
-          const SizedBox(height: 24),
-          Text(
-            'Cargando información del viaje...',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-            ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const FaIcon(
+                FontAwesomeIcons.truckFast,
+                size: 14,
+                color: AppColors.lightTextSecondary,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Cargando información del viaje...',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: AppColors.lightTextSecondary,
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildCompactHeader(
+  Widget _buildHeader(
     ThemeData theme,
     LoteDetalleViajeModel lote,
     LoteDetalleController controller,
@@ -140,43 +165,41 @@ class _LoteDetallePageState extends State<LoteDetallePage> {
     final colorEstado = _hexToColor(controller.colorEstado);
 
     return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: theme.colorScheme.outline.withValues(alpha: 0.1),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+      color: Colors.white,
+      padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Fila superior: ID y Estado
           Row(
             children: [
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 10,
-                  vertical: 4,
+                  vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                  color: AppColors.lightBackground,
                   borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: AppColors.lightBorder, width: 1),
                 ),
-                child: Text(
-                  'ID #${lote.codigoLote.split('-').last}',
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5,
-                  ),
+                child: Row(
+                  children: [
+                    const FaIcon(
+                      FontAwesomeIcons.hashtag,
+                      size: 11,
+                      color: AppColors.lightTextPrimary,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      lote.codigoLote.split('-').last,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: AppColors.lightTextPrimary,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const Spacer(),
@@ -187,62 +210,82 @@ class _LoteDetallePageState extends State<LoteDetallePage> {
                 ),
                 decoration: BoxDecoration(
                   color: colorEstado,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: colorEstado.withValues(alpha: 0.3),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Row(
+                  children: [
+                    FaIcon(
+                      _getIconoByEstado(controller.estadoDescriptivo),
+                      size: 10,
+                      color: Colors.white,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      controller.estadoDescriptivo,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.3,
+                      ),
                     ),
                   ],
-                ),
-                child: Text(
-                  controller.estadoDescriptivo,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.3,
-                  ),
                 ),
               ),
             ],
           ),
+
           const SizedBox(height: 20),
+
+          // Barra de progreso
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Progreso',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                  fontWeight: FontWeight.w500,
-                ),
+              Row(
+                children: [
+                  const FaIcon(
+                    FontAwesomeIcons.chartLine,
+                    size: 12,
+                    color: AppColors.lightTextSecondary,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Progreso del viaje',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppColors.lightTextPrimary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
               Text(
                 '${(controller.progresoViaje * 100).toInt()}%',
                 style: theme.textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w700,
                   color: colorEstado,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: TweenAnimationBuilder<double>(
-              duration: const Duration(milliseconds: 800),
-              curve: Curves.easeOutCubic,
-              tween: Tween(begin: 0, end: controller.progresoViaje),
-              builder: (context, value, child) {
-                return LinearProgressIndicator(
-                  value: value,
-                  minHeight: 6,
-                  backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                  valueColor: AlwaysStoppedAnimation<Color>(colorEstado),
-                );
-              },
+
+          const SizedBox(height: 10),
+
+          // Barra de progreso simple y limpia
+          Container(
+            height: 8,
+            decoration: BoxDecoration(
+              color: AppColors.lightBorder,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: FractionallySizedBox(
+              alignment: Alignment.centerLeft,
+              widthFactor: controller.progresoViaje,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: colorEstado,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
             ),
           ),
         ],
@@ -254,28 +297,36 @@ class _LoteDetallePageState extends State<LoteDetallePage> {
     if (!lote.tieneRutaCompleta) {
       return Container(
         height: 280,
-        margin: const EdgeInsets.symmetric(horizontal: 16),
+        margin: const EdgeInsets.all(16.0),
         decoration: BoxDecoration(
-          color: Colors.grey[100],
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey[300]!),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.lightBorder),
         ),
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.location_off_rounded,
-                size: 40,
-                color: Colors.grey[400],
+              const FaIcon(
+                FontAwesomeIcons.mapLocationDot,
+                size: 36,
+                color: AppColors.lightTextTertiary,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               Text(
                 'Mapa no disponible',
                 style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 13,
+                  color: AppColors.lightTextPrimary,
+                  fontSize: 14,
                   fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'La ruta se mostrará cuando esté completa',
+                style: TextStyle(
+                  color: AppColors.lightTextSecondary,
+                  fontSize: 12,
                 ),
               ),
             ],
@@ -284,126 +335,169 @@ class _LoteDetallePageState extends State<LoteDetallePage> {
       );
     }
 
-    return MapFourWaypoints(waypoints: lote.waypoints, height: 320);
+    return Container(
+      margin: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.lightBorder),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: MapFourWaypoints(waypoints: lote.waypoints, height: 320),
+    );
   }
 
   Widget _buildInfoViaje(ThemeData theme, LoteDetalleViajeModel lote) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.lightBorder),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Información del Viaje',
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: theme.colorScheme.outline.withValues(alpha: 0.1),
+          Row(
+            children: [
+              FaIcon(
+                FontAwesomeIcons.circleInfo,
+                size: 16,
+                color: theme.colorScheme.primary,
               ),
-            ),
-            child: Column(
-              children: [
-                _buildSimpleInfoRow(
-                  theme,
-                  label: 'Distancia',
-                  value: lote.distanciaDisplay,
+              const SizedBox(width: 10),
+              Text(
+                'Información del Viaje',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.lightTextPrimary,
                 ),
-                Divider(
-                  height: 24,
-                  color: theme.colorScheme.outline.withValues(alpha: 0.1),
-                ),
-                _buildSimpleInfoRow(
-                  theme,
-                  label: 'Tiempo Estimado',
-                  value: lote.tiempoEstimadoDisplay,
-                ),
-                Divider(
-                  height: 24,
-                  color: theme.colorScheme.outline.withValues(alpha: 0.1),
-                ),
-                _buildSimpleInfoRow(
-                  theme,
-                  label: 'Tipo Mineral',
-                  value: _formatTipoMineral(lote.tipoMineral),
-                ),
-                Divider(
-                  height: 24,
-                  color: theme.colorScheme.outline.withValues(alpha: 0.1),
-                ),
-                _buildSimpleInfoRow(
-                  theme,
-                  label: 'Destino',
-                  value: lote.destinoTipo,
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
+
+          const SizedBox(height: 16),
+
+          _buildInfoRow(
+            theme,
+            icon: FontAwesomeIcons.route,
+            label: 'Distancia',
+            value: lote.distanciaDisplay,
+          ),
+
+          const Divider(height: 24),
+
+          _buildInfoRow(
+            theme,
+            icon: FontAwesomeIcons.clock,
+            label: 'Tiempo Estimado',
+            value: lote.tiempoEstimadoDisplay,
+          ),
+
+          const Divider(height: 24),
+
+          _buildInfoRow(
+            theme,
+            icon: FontAwesomeIcons.gem,
+            label: 'Tipo Mineral',
+            value: _formatTipoMineral(lote.tipoMineral),
+          ),
+
+          const Divider(height: 24),
+
+          _buildInfoRow(
+            theme,
+            icon: FontAwesomeIcons.flagCheckered,
+            label: 'Destino',
+            value: lote.destinoTipo,
+          ),
+
           if (lote.mineralTags.isNotEmpty) ...[
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: lote.mineralTags.map((tag) {
                 return Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
+                    horizontal: 10,
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.primaryContainer.withValues(
-                      alpha: 0.3,
-                    ),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.2),
-                    ),
+                    color: AppColors.lightBackground,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: AppColors.lightBorder),
                   ),
-                  child: Text(
-                    tag,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.w500,
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const FaIcon(
+                        FontAwesomeIcons.tag,
+                        size: 10,
+                        color: AppColors.lightTextPrimary,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        tag,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.lightTextPrimary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
                 );
               }).toList(),
             ),
           ],
-          const SizedBox(height: 24),
         ],
       ),
     );
   }
 
-  Widget _buildSimpleInfoRow(
+  Widget _buildInfoRow(
     ThemeData theme, {
+    required IconData icon,
     required String label,
     required String value,
   }) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-            fontWeight: FontWeight.w500,
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: AppColors.lightBackground,
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Center(
+            child: FaIcon(icon, size: 14, color: AppColors.lightTextPrimary),
           ),
         ),
-        Text(
-          value,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-            color: theme.colorScheme.onSurface,
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: AppColors.lightTextSecondary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.lightTextPrimary,
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -417,156 +511,144 @@ class _LoteDetallePageState extends State<LoteDetallePage> {
   ) {
     final waypoints = lote.waypoints;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16.0),
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.lightBorder),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Ruta del Viaje',
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+          Row(
+            children: [
+              FaIcon(
+                FontAwesomeIcons.mapLocationDot,
+                size: 16,
+                color: theme.colorScheme.primary,
+              ),
+              const SizedBox(width: 10),
+              Text(
+                'Ruta del Viaje',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.lightTextPrimary,
+                ),
+              ),
+            ],
           ),
+
           const SizedBox(height: 16),
+
           ...waypoints.asMap().entries.map((entry) {
             final index = entry.key;
             final waypoint = entry.value;
             final isActive = controller.pasoActual >= waypoint.orden;
             final color = _hexToColor(waypoint.color);
 
-            return TweenAnimationBuilder<double>(
-              duration: Duration(milliseconds: 300 + (index * 100)),
-              curve: Curves.easeOut,
-              tween: Tween(begin: 0, end: 1),
-              builder: (context, value, child) {
-                return Opacity(
-                  opacity: value,
-                  child: Transform.translate(
-                    offset: Offset(0, 20 * (1 - value)),
-                    child: child,
-                  ),
-                );
-              },
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Column(
-                      children: [
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            color: isActive
-                                ? color
-                                : theme.colorScheme.surfaceContainerHighest,
-                            shape: BoxShape.circle,
-                            boxShadow: isActive
-                                ? [
-                                    BoxShadow(
-                                      color: color.withValues(alpha: 0.3),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ]
-                                : null,
-                          ),
-                          child: Center(
-                            child: Text(
-                              waypoint.orden.toString(),
-                              style: TextStyle(
-                                color: isActive
-                                    ? Colors.white
-                                    : theme.colorScheme.onSurface.withValues(
-                                        alpha: 0.4,
-                                      ),
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                        ),
-                        if (waypoint.orden < waypoints.length)
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 300),
-                            width: 2,
-                            height: 44,
-                            color: isActive
-                                ? color.withValues(alpha: 0.4)
-                                : theme.colorScheme.surfaceContainerHighest,
-                          ),
-                      ],
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        padding: const EdgeInsets.all(14),
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: index < waypoints.length - 1 ? 12 : 0,
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Indicador circular
+                  Column(
+                    children: [
+                      Container(
+                        width: 32,
+                        height: 32,
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.surface,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: isActive
-                                ? color.withValues(alpha: 0.2)
-                                : theme.colorScheme.outline.withValues(
-                                    alpha: 0.1,
-                                  ),
-                            width: isActive ? 1.5 : 1,
-                          ),
+                          color: isActive ? color : AppColors.lightBorder,
+                          shape: BoxShape.circle,
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(6),
-                                  decoration: BoxDecoration(
-                                    color: isActive
-                                        ? color.withValues(alpha: 0.1)
-                                        : theme
-                                              .colorScheme
-                                              .surfaceContainerHighest,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    waypoint.iconoEmoji,
-                                    style: const TextStyle(fontSize: 16),
+                        child: Center(
+                          child: isActive
+                              ? const FaIcon(
+                                  FontAwesomeIcons.check,
+                                  size: 14,
+                                  color: Colors.white,
+                                )
+                              : Text(
+                                  waypoint.orden.toString(),
+                                  style: const TextStyle(
+                                    color: AppColors.lightTextSecondary,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
                                   ),
                                 ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Text(
-                                    waypoint.tituloDescriptivo,
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                      color: isActive
-                                          ? theme.colorScheme.onSurface
-                                          : theme.colorScheme.onSurface
-                                                .withValues(alpha: 0.4),
-                                    ),
+                        ),
+                      ),
+                      if (waypoint.orden < waypoints.length)
+                        Container(
+                          width: 2,
+                          height: 40,
+                          color: isActive
+                              ? color.withValues(alpha: 0.3)
+                              : AppColors.lightBorder,
+                        ),
+                    ],
+                  ),
+
+                  const SizedBox(width: 12),
+
+                  // Información del waypoint
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isActive
+                            ? color.withValues(alpha: 0.05)
+                            : AppColors.lightBackground,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isActive
+                              ? color.withValues(alpha: 0.3)
+                              : AppColors.lightBorder,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          FaIcon(
+                            _getIconoByWaypoint(waypoint.iconoEmoji),
+                            size: 16,
+                            color: isActive
+                                ? color
+                                : AppColors.lightTextSecondary,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  waypoint.tituloDescriptivo,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: isActive
+                                        ? AppColors.lightTextPrimary
+                                        : AppColors.lightTextSecondary,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  waypoint.nombre,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: AppColors.lightTextSecondary,
+                                    fontSize: 11,
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 6),
-                            Text(
-                              waypoint.nombre,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurface.withValues(
-                                  alpha: 0.5,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             );
           }).toList(),
@@ -576,95 +658,119 @@ class _LoteDetallePageState extends State<LoteDetallePage> {
   }
 
   Widget _buildInfoSocio(ThemeData theme, LoteDetalleViajeModel lote) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: theme.colorScheme.outline.withValues(alpha: 0.1),
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Información del Socio',
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w600,
+    return Container(
+      margin: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.lightBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              FaIcon(
+                FontAwesomeIcons.userTie,
+                size: 16,
+                color: theme.colorScheme.primary,
               ),
-            ),
-            const SizedBox(height: 16),
-            _buildInfoRow(
-              theme,
-              icon: Icons.person_outline_rounded,
-              label: 'Nombre',
-              value: lote.socioNombre ?? 'No disponible',
-            ),
-            const SizedBox(height: 12),
-            _buildInfoRow(
-              theme,
-              icon: Icons.phone_rounded,
-              label: 'Teléfono',
-              value: lote.socioTelefono ?? 'No disponible',
-            ),
-            const SizedBox(height: 12),
-            _buildInfoRow(
-              theme,
-              icon: Icons.place_rounded,
-              label: 'Mina',
-              value: lote.minaNombre,
-            ),
-          ],
-        ),
+              const SizedBox(width: 10),
+              Text(
+                'Información del Socio',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.lightTextPrimary,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          _buildSimpleInfoRow(
+            theme,
+            icon: FontAwesomeIcons.user,
+            label: 'Nombre',
+            value: lote.socioNombre ?? 'No disponible',
+          ),
+
+          const SizedBox(height: 12),
+
+          _buildSimpleInfoRow(
+            theme,
+            icon: FontAwesomeIcons.phone,
+            label: 'Teléfono',
+            value: lote.socioTelefono ?? 'No disponible',
+          ),
+
+          const SizedBox(height: 12),
+
+          _buildSimpleInfoRow(
+            theme,
+            icon: FontAwesomeIcons.mountain,
+            label: 'Mina',
+            value: lote.minaNombre,
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildInfoCamion(ThemeData theme, LoteDetalleViajeModel lote) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: theme.colorScheme.outline.withValues(alpha: 0.1),
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Información del Camión',
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w600,
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16.0),
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.lightBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              FaIcon(
+                FontAwesomeIcons.truck,
+                size: 16,
+                color: theme.colorScheme.primary,
               ),
-            ),
-            const SizedBox(height: 16),
-            _buildInfoRow(
-              theme,
-              icon: Icons.local_shipping_rounded,
-              label: 'Número de Camión',
-              value: '#${lote.numeroCamion}',
-            ),
-            const SizedBox(height: 12),
-            _buildInfoRow(
-              theme,
-              icon: Icons.inventory_rounded,
-              label: 'Total de Camiones',
-              value: '${lote.totalCamiones} camiones',
-            ),
-          ],
-        ),
+              const SizedBox(width: 10),
+              Text(
+                'Información del Camión',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.lightTextPrimary,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          _buildSimpleInfoRow(
+            theme,
+            icon: FontAwesomeIcons.truckFast,
+            label: 'Número de Camión',
+            value: '#${lote.numeroCamion}',
+          ),
+
+          const SizedBox(height: 12),
+
+          _buildSimpleInfoRow(
+            theme,
+            icon: FontAwesomeIcons.boxesStacked,
+            label: 'Total de Camiones',
+            value: '${lote.totalCamiones} camiones',
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildInfoRow(
+  Widget _buildSimpleInfoRow(
     ThemeData theme, {
     required IconData icon,
     required String label,
@@ -673,12 +779,15 @@ class _LoteDetallePageState extends State<LoteDetallePage> {
     return Row(
       children: [
         Container(
-          padding: const EdgeInsets.all(8),
+          width: 32,
+          height: 32,
           decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(8),
+            color: AppColors.lightBackground,
+            borderRadius: BorderRadius.circular(6),
           ),
-          child: Icon(icon, size: 18, color: theme.colorScheme.primary),
+          child: Center(
+            child: FaIcon(icon, size: 14, color: AppColors.lightTextPrimary),
+          ),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -688,7 +797,7 @@ class _LoteDetallePageState extends State<LoteDetallePage> {
               Text(
                 label,
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                  color: AppColors.lightTextSecondary,
                   fontSize: 11,
                 ),
               ),
@@ -697,6 +806,7 @@ class _LoteDetallePageState extends State<LoteDetallePage> {
                 value,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.w500,
+                  color: AppColors.lightTextPrimary,
                 ),
               ),
             ],
@@ -712,34 +822,30 @@ class _LoteDetallePageState extends State<LoteDetallePage> {
     BuildContext context,
   ) {
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, -2),
-          ),
-        ],
+      padding: const EdgeInsets.all(16.0),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: AppColors.lightBorder, width: 1)),
       ),
       child: SafeArea(
-        child: FilledButton(
+        child: FilledButton.icon(
           onPressed: () =>
               controller.onPresionarBotonPrincipal(Get.context ?? context),
           style: FilledButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 16),
+            padding: const EdgeInsets.symmetric(vertical: 14),
             backgroundColor: theme.colorScheme.primary,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(8),
             ),
+            elevation: 0,
           ),
-          child: Text(
+          icon: const FaIcon(FontAwesomeIcons.arrowRight, size: 16),
+          label: Text(
             controller.textoBotonPrincipal,
             style: const TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w600,
-              letterSpacing: 0.3,
+              letterSpacing: 0.2,
             ),
           ),
         ),
@@ -752,29 +858,52 @@ class _LoteDetallePageState extends State<LoteDetallePage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.error_outline_rounded,
-            size: 64,
-            color: theme.colorScheme.error.withValues(alpha: 0.7),
+          Container(
+            width: 80,
+            height: 80,
+            decoration: const BoxDecoration(
+              color: AppColors.lightBackground,
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: FaIcon(
+                FontAwesomeIcons.triangleExclamation,
+                size: 32,
+                color: theme.colorScheme.error,
+              ),
+            ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           Text(
             'No se pudo cargar el viaje',
             style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w600,
+              color: AppColors.lightTextPrimary,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Intenta nuevamente más tarde',
             style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+              color: AppColors.lightTextSecondary,
             ),
+          ),
+          const SizedBox(height: 24),
+          FilledButton.icon(
+            onPressed: controller.refrescar,
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              elevation: 0,
+            ),
+            icon: const FaIcon(FontAwesomeIcons.arrowsRotate, size: 14),
+            label: const Text('Reintentar'),
           ),
         ],
       ),
     );
   }
+
+  // ==================== HELPERS ====================
 
   Color _hexToColor(String hexString) {
     final buffer = StringBuffer();
@@ -784,13 +913,65 @@ class _LoteDetallePageState extends State<LoteDetallePage> {
   }
 
   String _formatTipoMineral(String tipo) {
-    switch (tipo) {
+    switch (tipo.toLowerCase()) {
       case 'bruto':
         return 'Bruto';
       case 'concentrado':
         return 'Concentrado';
       default:
         return tipo;
+    }
+  }
+
+  IconData _getIconoByEstado(String estado) {
+    switch (estado.toLowerCase()) {
+      case 'iniciado':
+        return FontAwesomeIcons.play;
+      case 'en camino':
+        return FontAwesomeIcons.truckFast;
+      case 'llegada mina':
+        return FontAwesomeIcons.mountain;
+      case 'esperando carguío':
+        return FontAwesomeIcons.hourglassHalf;
+      case 'cargando':
+        return FontAwesomeIcons.truckRampBox;
+      case 'pesaje':
+        return FontAwesomeIcons.scaleBalanced;
+      case 'llegada almacén':
+        return FontAwesomeIcons.warehouse;
+      case 'descarga':
+        return FontAwesomeIcons.boxOpen;
+      case 'completado':
+        return FontAwesomeIcons.circleCheck;
+      default:
+        return FontAwesomeIcons.circle;
+    }
+  }
+
+  IconData _getIconoByWaypoint(String emoji) {
+    switch (emoji) {
+      case '🏁':
+        return FontAwesomeIcons.flagCheckered;
+      case '🚛':
+        return FontAwesomeIcons.truck;
+      case '⛏️':
+        return FontAwesomeIcons.mountain;
+      case '⏳':
+        return FontAwesomeIcons.hourglassHalf;
+      case '📦':
+        return FontAwesomeIcons.box;
+      case '⚖️':
+        return FontAwesomeIcons.scaleBalanced;
+      case '🏭':
+        return FontAwesomeIcons.warehouse;
+      case '📍':
+        return FontAwesomeIcons.locationDot;
+      case '✅':
+        return FontAwesomeIcons.circleCheck;
+      case '🎯':
+        return FontAwesomeIcons.bullseye;
+      default:
+        return FontAwesomeIcons.mapPin;
     }
   }
 }

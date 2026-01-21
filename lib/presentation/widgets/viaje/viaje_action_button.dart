@@ -1,9 +1,9 @@
 // lib/presentation/widgets/viaje/viaje_action_button.dart
 
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
-/// Botón de acción principal del viaje con estados y animaciones
-class ViajeActionButton extends StatelessWidget {
+class ViajeActionButton extends StatefulWidget {
   final String texto;
   final IconData icono;
   final bool habilitado;
@@ -24,78 +24,101 @@ class ViajeActionButton extends StatelessWidget {
   });
 
   @override
+  State<ViajeActionButton> createState() => _ViajeActionButtonState();
+}
+
+class _ViajeActionButtonState extends State<ViajeActionButton> {
+  bool _isPressed = false;
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final color = colorPrimario ?? theme.colorScheme.primary;
+    final color = widget.colorPrimario ?? theme.colorScheme.primary;
 
-    if (esSecundario) {
+    if (widget.esSecundario) {
       return _buildSecundario(theme, color);
     }
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      width: double.infinity,
-      height: 56,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: habilitado && !cargando
-            ? [
-                BoxShadow(
-                  color: color.withValues(alpha: 0.4),
-                  blurRadius: 12,
-                  offset: const Offset(0, 6),
-                ),
-              ]
-            : null,
-      ),
-      child: Material(
-        color: habilitado ? color : theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(16),
-        child: InkWell(
-          onTap: habilitado && !cargando ? onPressed : null,
+    return GestureDetector(
+      onTapDown: widget.habilitado && !widget.cargando
+          ? (_) => setState(() => _isPressed = true)
+          : null,
+      onTapUp: widget.habilitado && !widget.cargando
+          ? (_) {
+              setState(() => _isPressed = false);
+              widget.onPressed?.call();
+            }
+          : null,
+      onTapCancel: () => setState(() => _isPressed = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        curve: Curves.easeOut,
+        transform: Matrix4.identity()..scale(_isPressed ? 0.97 : 1.0),
+        width: double.infinity,
+        height: 56,
+        decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (cargando) ...[
-                  SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.5,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        habilitado
-                            ? Colors.white
-                            : theme.colorScheme.onSurface.withValues(
-                                alpha: 0.5,
-                              ),
+          boxShadow: widget.habilitado && !widget.cargando && !_isPressed
+              ? [
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.4),
+                    blurRadius: 12,
+                    offset: const Offset(0, 6),
+                  ),
+                ]
+              : null,
+        ),
+        child: Material(
+          color: widget.habilitado
+              ? color
+              : theme.colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(16),
+          child: InkWell(
+            onTap: null, // Manejado por GestureDetector
+            borderRadius: BorderRadius.circular(16),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (widget.cargando) ...[
+                    SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          widget.habilitado
+                              ? Colors.white
+                              : theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.5,
+                                ),
+                        ),
                       ),
                     ),
-                  ),
-                ] else ...[
-                  Icon(
-                    icono,
-                    color: habilitado
-                        ? Colors.white
-                        : theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                    size: 24,
+                  ] else ...[
+                    FaIcon(
+                      widget.icono,
+                      color: widget.habilitado
+                          ? Colors.white
+                          : theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                      size: 20,
+                    ),
+                  ],
+                  const SizedBox(width: 12),
+                  Text(
+                    widget.cargando ? 'Procesando...' : widget.texto,
+                    style: TextStyle(
+                      color: widget.habilitado
+                          ? Colors.white
+                          : theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.3,
+                    ),
                   ),
                 ],
-                const SizedBox(width: 12),
-                Text(
-                  cargando ? 'Procesando...' : texto,
-                  style: TextStyle(
-                    color: habilitado
-                        ? Colors.white
-                        : theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.3,
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),
@@ -104,31 +127,40 @@ class ViajeActionButton extends StatelessWidget {
   }
 
   Widget _buildSecundario(ThemeData theme, Color color) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      width: double.infinity,
-      height: 48,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: habilitado
-              ? color.withValues(alpha: 0.5)
-              : theme.colorScheme.outline.withValues(alpha: 0.2),
-          width: 1.5,
+    return GestureDetector(
+      onTapDown: widget.habilitado && !widget.cargando
+          ? (_) => setState(() => _isPressed = true)
+          : null,
+      onTapUp: widget.habilitado && !widget.cargando
+          ? (_) {
+              setState(() => _isPressed = false);
+              widget.onPressed?.call();
+            }
+          : null,
+      onTapCancel: () => setState(() => _isPressed = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        transform: Matrix4.identity()..scale(_isPressed ? 0.98 : 1.0),
+        width: double.infinity,
+        height: 48,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: widget.habilitado
+                ? color.withValues(alpha: 0.5)
+                : theme.colorScheme.outline.withValues(alpha: 0.2),
+            width: 1.5,
+          ),
         ),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
-        child: InkWell(
-          onTap: habilitado && !cargando ? onPressed : null,
+        child: Material(
+          color: Colors.transparent,
           borderRadius: BorderRadius.circular(12),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                if (cargando) ...[
+                if (widget.cargando) ...[
                   SizedBox(
                     width: 20,
                     height: 20,
@@ -138,19 +170,19 @@ class ViajeActionButton extends StatelessWidget {
                     ),
                   ),
                 ] else ...[
-                  Icon(
-                    icono,
-                    color: habilitado
+                  FaIcon(
+                    widget.icono,
+                    color: widget.habilitado
                         ? color
                         : theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                    size: 20,
+                    size: 18,
                   ),
                 ],
                 const SizedBox(width: 10),
                 Text(
-                  cargando ? 'Procesando...' : texto,
+                  widget.cargando ? 'Procesando...' : widget.texto,
                   style: TextStyle(
-                    color: habilitado
+                    color: widget.habilitado
                         ? color
                         : theme.colorScheme.onSurface.withValues(alpha: 0.4),
                     fontSize: 14,
@@ -166,7 +198,6 @@ class ViajeActionButton extends StatelessWidget {
   }
 }
 
-/// Botón flotante de acción con estilo elevado
 class ViajeFloatingActionButton extends StatelessWidget {
   final String texto;
   final IconData icono;

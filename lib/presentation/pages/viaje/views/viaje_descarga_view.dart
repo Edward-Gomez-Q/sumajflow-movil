@@ -1,6 +1,7 @@
 // lib/presentation/pages/viaje/views/viaje_descarga_view.dart
 
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
 import 'package:sumajflow_movil/presentation/getx/viaje_controller.dart';
 import 'package:sumajflow_movil/presentation/widgets/viaje/viaje_estado_header.dart';
@@ -31,20 +32,39 @@ class ViajeDescargaView extends StatelessWidget {
                     subtitulo: controller.descripcionEstadoActual,
                   ),
                   const SizedBox(height: 32),
-
-                  Container(
-                    width: 120,
-                    height: 120,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: const Color(0xFFEC4899).withValues(alpha: 0.15),
-                    ),
-                    child: const Center(
-                      child: Text('📦', style: TextStyle(fontSize: 56)),
+                  TweenAnimationBuilder<double>(
+                    duration: const Duration(milliseconds: 800),
+                    tween: Tween(begin: 0.0, end: 1.0),
+                    curve: Curves.elasticOut,
+                    builder: (context, value, child) {
+                      return Transform.scale(scale: value, child: child);
+                    },
+                    child: Container(
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: const Color(0xFFEC4899).withValues(alpha: 0.15),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(
+                              0xFFEC4899,
+                            ).withValues(alpha: 0.2),
+                            blurRadius: 20,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: const Center(
+                        child: FaIcon(
+                          FontAwesomeIcons.boxOpen,
+                          size: 48,
+                          color: Color(0xFFEC4899),
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 24),
-
                   Text(
                     'Descarga en Progreso',
                     style: theme.textTheme.titleLarge?.copyWith(
@@ -52,13 +72,11 @@ class ViajeDescargaView extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 24),
-
-                  ViajeAlertCard(
+                  const ViajeAlertCard(
                     mensaje: 'Toma una foto como evidencia de la descarga',
                     tipo: ViajeAlertType.info,
                   ),
                   const SizedBox(height: 20),
-
                   Obx(() {
                     return ViajeEvidenciaUploader(
                       evidencias: controller.evidenciasTemporales,
@@ -69,7 +87,6 @@ class ViajeDescargaView extends StatelessWidget {
                     );
                   }),
                   const SizedBox(height: 20),
-
                   ViajeObservacionField(
                     label: 'Observaciones de la Descarga',
                     onChanged: controller.actualizarComentario,

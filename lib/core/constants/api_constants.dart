@@ -1,6 +1,6 @@
 /// Constantes de la API
 class ApiConstants {
-  static const String ip = '192.168.0.7';
+  static const String ip = '192.168.0.6';
   static const String baseUrl = 'http://$ip:8080';
   static const String wsUrl = 'ws://$ip:8080/ws-native';
 

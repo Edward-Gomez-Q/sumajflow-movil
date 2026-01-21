@@ -1,6 +1,7 @@
 // lib/presentation/pages/viaje/views/viaje_cargando_view.dart
 
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
 import 'package:sumajflow_movil/presentation/getx/viaje_controller.dart';
 import 'package:sumajflow_movil/presentation/widgets/viaje/viaje_estado_header.dart';
@@ -31,20 +32,39 @@ class ViajeCargandoView extends StatelessWidget {
                     subtitulo: controller.descripcionEstadoActual,
                   ),
                   const SizedBox(height: 32),
-
-                  Container(
-                    width: 120,
-                    height: 120,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: const Color(0xFFF97316).withValues(alpha: 0.15),
-                    ),
-                    child: const Center(
-                      child: Text('⛏️', style: TextStyle(fontSize: 56)),
+                  TweenAnimationBuilder<double>(
+                    duration: const Duration(milliseconds: 800),
+                    tween: Tween(begin: 0.0, end: 1.0),
+                    curve: Curves.elasticOut,
+                    builder: (context, value, child) {
+                      return Transform.scale(scale: value, child: child);
+                    },
+                    child: Container(
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: const Color(0xFFF97316).withValues(alpha: 0.15),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(
+                              0xFFF97316,
+                            ).withValues(alpha: 0.2),
+                            blurRadius: 20,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: const Center(
+                        child: FaIcon(
+                          FontAwesomeIcons.truckLoading,
+                          size: 48,
+                          color: Color(0xFFF97316),
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 24),
-
                   Text(
                     'Carga en Progreso',
                     style: theme.textTheme.titleLarge?.copyWith(
@@ -52,14 +72,12 @@ class ViajeCargandoView extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 24),
-
-                  ViajeAlertCard(
+                  const ViajeAlertCard(
                     mensaje:
                         'Toma al menos una foto como evidencia de la carga',
                     tipo: ViajeAlertType.warning,
                   ),
                   const SizedBox(height: 20),
-
                   Obx(() {
                     return ViajeEvidenciaUploader(
                       evidencias: controller.evidenciasTemporales,
@@ -70,10 +88,9 @@ class ViajeCargandoView extends StatelessWidget {
                     );
                   }),
                   const SizedBox(height: 20),
-
-                  ViajeObservacionField(
+                  const ViajeObservacionField(
                     label: 'Observaciones de la Carga',
-                    onChanged: controller.actualizarComentario,
+                    onChanged: null,
                   ),
                   const SizedBox(height: 100),
                 ],

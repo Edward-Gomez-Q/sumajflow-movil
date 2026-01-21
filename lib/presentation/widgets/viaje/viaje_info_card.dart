@@ -1,8 +1,8 @@
 // lib/presentation/widgets/viaje/viaje_info_card.dart
 
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
-/// Tarjeta de información reutilizable
 class ViajeInfoCard extends StatelessWidget {
   final String titulo;
   final List<ViajeInfoItem> items;
@@ -24,85 +24,96 @@ class ViajeInfoCard extends StatelessWidget {
     final theme = Theme.of(context);
     final color = colorAccento ?? theme.colorScheme.primary;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: theme.colorScheme.outline.withValues(alpha: 0.1),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+    return TweenAnimationBuilder<double>(
+      duration: const Duration(milliseconds: 400),
+      tween: Tween(begin: 0.0, end: 1.0),
+      curve: Curves.easeOut,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 10 * (1 - value)),
+            child: child,
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                if (iconoTitulo != null) ...[
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(iconoTitulo, size: 18, color: color),
-                  ),
-                  const SizedBox(width: 12),
-                ],
-                Expanded(
-                  child: Text(
-                    titulo,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                if (accionExtra != null) accionExtra!,
-              ],
-            ),
-          ),
-          // Divider
-          Divider(
-            height: 1,
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
             color: theme.colorScheme.outline.withValues(alpha: 0.1),
           ),
-          // Items
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: items.asMap().entries.map((entry) {
-                final index = entry.key;
-                final item = entry.value;
-                final esUltimo = index == items.length - 1;
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  if (iconoTitulo != null) ...[
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: FaIcon(iconoTitulo, size: 16, color: color),
+                    ),
+                    const SizedBox(width: 12),
+                  ],
+                  Expanded(
+                    child: Text(
+                      titulo,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  if (accionExtra != null) accionExtra!,
+                ],
+              ),
+            ),
+            Divider(
+              height: 1,
+              color: theme.colorScheme.outline.withValues(alpha: 0.1),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: items.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final item = entry.value;
+                  final esUltimo = index == items.length - 1;
 
-                return Column(
-                  children: [
-                    _buildInfoRow(theme, item),
-                    if (!esUltimo)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        child: Divider(
-                          height: 1,
-                          color: theme.colorScheme.outline.withValues(
-                            alpha: 0.08,
+                  return Column(
+                    children: [
+                      _buildInfoRow(theme, item),
+                      if (!esUltimo)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          child: Divider(
+                            height: 1,
+                            color: theme.colorScheme.outline.withValues(
+                              alpha: 0.08,
+                            ),
                           ),
                         ),
-                      ),
-                  ],
-                );
-              }).toList(),
+                    ],
+                  );
+                }).toList(),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -117,7 +128,11 @@ class ViajeInfoCard extends StatelessWidget {
               color: theme.colorScheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(item.icono, size: 16, color: theme.colorScheme.primary),
+            child: FaIcon(
+              item.icono,
+              size: 14,
+              color: theme.colorScheme.primary,
+            ),
           ),
         if (item.icono != null) const SizedBox(width: 12),
         Expanded(
@@ -149,7 +164,6 @@ class ViajeInfoCard extends StatelessWidget {
   }
 }
 
-/// Item de información para ViajeInfoCard
 class ViajeInfoItem {
   final String label;
   final String valor;
@@ -164,7 +178,6 @@ class ViajeInfoItem {
   });
 }
 
-/// Card compacta para mostrar un stat
 class ViajeStatCard extends StatelessWidget {
   final String titulo;
   final String valor;
@@ -211,7 +224,7 @@ class ViajeStatCard extends StatelessWidget {
                   color: cardColor.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(icono, size: 18, color: cardColor),
+                child: FaIcon(icono, size: 16, color: cardColor),
               ),
               const Spacer(),
             ],
@@ -247,7 +260,6 @@ class ViajeStatCard extends StatelessWidget {
   }
 }
 
-/// Card de alerta/advertencia
 class ViajeAlertCard extends StatelessWidget {
   final String mensaje;
   final ViajeAlertType tipo;
@@ -270,52 +282,63 @@ class ViajeAlertCard extends StatelessWidget {
     final color = _getColor(theme);
     final icon = _getIcon();
 
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 20, color: color),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              mensaje,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: color,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          if (onAction != null && textoAccion != null) ...[
-            const SizedBox(width: 8),
-            TextButton(
-              onPressed: onAction,
-              style: TextButton.styleFrom(
-                foregroundColor: color,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                minimumSize: const Size(0, 32),
-              ),
+    return TweenAnimationBuilder<double>(
+      duration: const Duration(milliseconds: 400),
+      tween: Tween(begin: 0.0, end: 1.0),
+      curve: Curves.easeOutBack,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.scale(scale: 0.8 + (0.2 * value), child: child),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            FaIcon(icon, size: 18, color: color),
+            const SizedBox(width: 12),
+            Expanded(
               child: Text(
-                textoAccion!,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 12,
+                mensaje,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: color,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),
+            if (onAction != null && textoAccion != null) ...[
+              const SizedBox(width: 8),
+              TextButton(
+                onPressed: onAction,
+                style: TextButton.styleFrom(
+                  foregroundColor: color,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  minimumSize: const Size(0, 32),
+                ),
+                child: Text(
+                  textoAccion!,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
+            if (onClose != null) ...[
+              const SizedBox(width: 4),
+              GestureDetector(
+                onTap: onClose,
+                child: FaIcon(FontAwesomeIcons.xmark, size: 16, color: color),
+              ),
+            ],
           ],
-          if (onClose != null) ...[
-            const SizedBox(width: 4),
-            GestureDetector(
-              onTap: onClose,
-              child: Icon(Icons.close_rounded, size: 18, color: color),
-            ),
-          ],
-        ],
+        ),
       ),
     );
   }
@@ -336,13 +359,13 @@ class ViajeAlertCard extends StatelessWidget {
   IconData _getIcon() {
     switch (tipo) {
       case ViajeAlertType.info:
-        return Icons.info_outline_rounded;
+        return FontAwesomeIcons.circleInfo;
       case ViajeAlertType.success:
-        return Icons.check_circle_outline_rounded;
+        return FontAwesomeIcons.circleCheck;
       case ViajeAlertType.warning:
-        return Icons.warning_amber_rounded;
+        return FontAwesomeIcons.triangleExclamation;
       case ViajeAlertType.error:
-        return Icons.error_outline_rounded;
+        return FontAwesomeIcons.circleExclamation;
     }
   }
 }

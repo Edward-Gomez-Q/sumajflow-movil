@@ -76,6 +76,8 @@ class LoteDetalleController extends GetxController {
     switch (estado) {
       case 'Esperando iniciar':
         return 'Empezar Viaje';
+      case 'Esperando aprobación del destino':
+        return '';
       case 'Completado':
         return '';
       default:

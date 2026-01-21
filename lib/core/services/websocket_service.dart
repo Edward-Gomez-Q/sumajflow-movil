@@ -37,7 +37,6 @@ class WebSocketService extends GetxService {
 
   Future<WebSocketService> init() async {
     _monitorConnectivity();
-    // No conectar automáticamente en init, esperar a que haya conexión
     if (_hasInternet.value) {
       await connect();
     }
@@ -53,38 +52,43 @@ class WebSocketService extends GetxService {
       _hasInternet.value = hasConnection;
 
       if (hasConnection && !hadInternet) {
-        debugPrint(
-          '🌐 Conexión a internet restaurada, reconectando WebSocket...',
-        );
+        debugPrint('🌐 Internet restaurado, reconectando WebSocket...');
         _reconnectAttempts = 0;
         connect();
       } else if (!hasConnection && hadInternet) {
-        debugPrint('📴 Sin conexión a internet, desconectando WebSocket...');
+        debugPrint('📴 Sin internet, desconectando WebSocket...');
         _disconnectSilently();
       }
     });
   }
 
   Future<void> connect() async {
-    // No intentar conectar si no hay internet
     if (!_hasInternet.value) {
-      debugPrint('📴 Sin internet, no se puede conectar WebSocket');
+      debugPrint('📴 Sin internet');
       _status.value = WebSocketStatus.disconnected;
       return;
     }
 
-    // No reconectar si ya estamos conectados o conectando
     if (_status.value == WebSocketStatus.connected ||
         _status.value == WebSocketStatus.connecting) {
+      debugPrint('⏭️ Ya conectado/conectando');
       return;
     }
 
-    // Límite de reintentos
     if (_reconnectAttempts >= _maxReconnectAttempts) {
-      debugPrint(
-        '⚠️ Máximo de reintentos alcanzado, esperando conexión estable',
-      );
+      debugPrint('⚠️ Máximo de reintentos alcanzado');
       return;
+    }
+
+    if (_stompClient != null) {
+      debugPrint('🧹 Limpiando conexión anterior...');
+      try {
+        _stompClient!.deactivate();
+        await Future.delayed(const Duration(milliseconds: 300));
+      } catch (e) {
+        debugPrint('⚠️ Error limpiando: $e');
+      }
+      _stompClient = null;
     }
 
     try {
@@ -94,7 +98,7 @@ class WebSocketService extends GetxService {
       final userId = authService.usuarioId;
 
       if (token == null || userId == null) {
-        debugPrint('⚠️ No hay token o userId, no se puede conectar WebSocket');
+        debugPrint('⚠️ No hay token o userId');
         _status.value = WebSocketStatus.disconnected;
         return;
       }
@@ -102,6 +106,8 @@ class WebSocketService extends GetxService {
       debugPrint(
         '🔌 Conectando WebSocket (intento ${_reconnectAttempts + 1}/$_maxReconnectAttempts)',
       );
+      debugPrint('   URL: $_wsUrl');
+      debugPrint('   Usuario ID: $userId');
 
       _isIntentionalDisconnect = false;
 
@@ -112,11 +118,15 @@ class WebSocketService extends GetxService {
           onWebSocketError: (dynamic error) => _onWebSocketError(error),
           onStompError: (StompFrame frame) => _onStompError(frame),
           onDisconnect: (_) => _onDisconnect(),
+          beforeConnect: () async {
+            debugPrint('⏳ Preparando conexión...');
+            await Future.delayed(const Duration(milliseconds: 100));
+          },
           stompConnectHeaders: {'Authorization': 'Bearer $token'},
           webSocketConnectHeaders: {'Authorization': 'Bearer $token'},
-          heartbeatIncoming: const Duration(seconds: 20),
-          heartbeatOutgoing: const Duration(seconds: 20),
-          connectionTimeout: const Duration(seconds: 5),
+          heartbeatIncoming: const Duration(seconds: 10),
+          heartbeatOutgoing: const Duration(seconds: 10),
+          connectionTimeout: const Duration(seconds: 8),
         ),
       );
 
@@ -129,9 +139,10 @@ class WebSocketService extends GetxService {
 
   void _onConnect(StompFrame frame, int userId) {
     _status.value = WebSocketStatus.connected;
-    _reconnectAttempts = 0; // Reset al conectar exitosamente
-    debugPrint('✅ WebSocket conectado correctamente');
+    _reconnectAttempts = 0;
+    debugPrint('✅ WebSocket conectado');
 
+    // Suscribirse a notificaciones del usuario
     final destination = '/user/queue/notificaciones';
     debugPrint('📬 Suscribiéndose a: $destination');
 
@@ -140,6 +151,7 @@ class WebSocketService extends GetxService {
         destination: destination,
         callback: (frame) {
           if (frame.body != null) {
+            debugPrint('📨 Notificación recibida: ${frame.body}');
             _handleNotification(frame.body!);
           }
         },
@@ -151,9 +163,8 @@ class WebSocketService extends GetxService {
   }
 
   void _onWebSocketError(dynamic error) {
-    // Solo loguear si no es un error de conexión esperado
     if (error is SocketException ||
-        error.toString().contains('Network is unreachable')) {
+        error.toString().contains('No route to host')) {
       if (_status.value != WebSocketStatus.disconnected) {
         debugPrint('📴 WebSocket: Sin conexión de red');
       }
@@ -184,14 +195,12 @@ class WebSocketService extends GetxService {
 
   void _handleConnectionError(dynamic error) {
     if (error is SocketException ||
-        error.toString().contains('Network is unreachable') ||
-        error.toString().contains('Connection failed')) {
-      // Error de red esperado - no loguear excesivamente
+        error.toString().contains('No route to host')) {
       if (_status.value != WebSocketStatus.disconnected) {
-        debugPrint('📴 WebSocket: No se pudo conectar (sin red)');
+        debugPrint('📴 No se pudo conectar (sin red)');
       }
     } else {
-      debugPrint('❌ Error al conectar WebSocket: $error');
+      debugPrint('❌ Error al conectar: $error');
     }
 
     _status.value = WebSocketStatus.error;
@@ -200,8 +209,9 @@ class WebSocketService extends GetxService {
 
   void _handleNotification(String body) {
     try {
-      debugPrint('📬 Notificación recibida: $body');
+      debugPrint('📬 Procesando notificación: $body');
 
+      // El body ya viene como JSON desde el servidor
       final data = {
         'message': body,
         'timestamp': DateTime.now().toIso8601String(),
@@ -210,25 +220,31 @@ class WebSocketService extends GetxService {
 
       _notifications.insert(0, data);
       _unreadCount.value++;
+
+      debugPrint('✅ Notificación agregada. Total: ${_notifications.length}');
     } catch (e) {
       debugPrint('❌ Error procesando notificación: $e');
     }
   }
 
-  void disconnect() {
+  void disconnect() async {
+    debugPrint('🛑 Desconectando WebSocket...');
     _isIntentionalDisconnect = true;
     _reconnectTimer?.cancel();
-    _reconnectAttempts =
-        _maxReconnectAttempts; // Prevenir reconexión automática
+    _reconnectAttempts = _maxReconnectAttempts;
 
-    try {
-      _stompClient?.deactivate();
-    } catch (e) {
-      debugPrint('⚠️ Error al desconectar: $e');
+    if (_stompClient != null) {
+      try {
+        _stompClient!.deactivate();
+        await Future.delayed(const Duration(milliseconds: 200));
+      } catch (e) {
+        debugPrint('⚠️ Error al desconectar: $e');
+      }
+      _stompClient = null;
     }
 
     _status.value = WebSocketStatus.disconnected;
-    debugPrint('🔌 WebSocket desconectado manualmente');
+    debugPrint('✅ WebSocket desconectado');
   }
 
   void _disconnectSilently() {
@@ -236,16 +252,12 @@ class WebSocketService extends GetxService {
     try {
       _stompClient?.deactivate();
     } catch (e) {
-      // Ignorar errores al desconectar
+      // Ignorar errores
     }
     _status.value = WebSocketStatus.disconnected;
   }
 
   void _scheduleReconnectIfNeeded() {
-    // No reconectar si:
-    // 1. Fue desconexión intencional
-    // 2. No hay internet
-    // 3. Se alcanzó el máximo de reintentos
     if (_isIntentionalDisconnect ||
         !_hasInternet.value ||
         _reconnectAttempts >= _maxReconnectAttempts) {
@@ -255,13 +267,12 @@ class WebSocketService extends GetxService {
     _reconnectTimer?.cancel();
     _reconnectTimer = Timer(_reconnectDelay, () {
       if (_hasInternet.value && !_isIntentionalDisconnect) {
-        debugPrint('🔄 Reintentando conexión WebSocket...');
+        debugPrint('🔄 Reintentando conexión...');
         connect();
       }
     });
   }
 
-  // Método para reiniciar intentos manualmente (útil al hacer login)
   void resetReconnectAttempts() {
     _reconnectAttempts = 0;
     _isIntentionalDisconnect = false;

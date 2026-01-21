@@ -131,7 +131,6 @@ class Dashboard extends StatelessWidget {
               ),
               TextButton(
                 onPressed: () {
-                  // Navegar a la pantalla de lotes
                   context.push('/lotes');
                 },
                 child: const Text('Ver todos'),
@@ -140,16 +139,14 @@ class Dashboard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
 
-          // Mostrar mensaje si no hay lotes
           if (lotesParaMostrar.isEmpty)
             _buildEmptyState(theme)
           else
-            // Mostrar los lotes
             ...lotesParaMostrar.map(
               (lote) => Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: LoteCard(
-                  loteCode: lote.codigoLote,
+                  loteCode: lote.loteId.toString(),
                   destino: lote.destinoNombre ?? lote.minaNombre,
                   estado: lote.estadoDisplay,
                   fecha: _formatearFecha(lote.fechaAsignacion),

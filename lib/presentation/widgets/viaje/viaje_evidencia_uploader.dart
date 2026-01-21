@@ -2,10 +2,10 @@
 
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 
-/// Widget para capturar y mostrar evidencias fotográficas
-class ViajeEvidenciaUploader extends StatelessWidget {
+class ViajeEvidenciaUploader extends StatefulWidget {
   final List<File> evidencias;
   final ValueChanged<File>? onAgregarEvidencia;
   final ValueChanged<int>? onEliminarEvidencia;
@@ -26,22 +26,45 @@ class ViajeEvidenciaUploader extends StatelessWidget {
   });
 
   @override
+  State<ViajeEvidenciaUploader> createState() => _ViajeEvidenciaUploaderState();
+}
+
+class _ViajeEvidenciaUploaderState extends State<ViajeEvidenciaUploader>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final puedeAgregar = evidencias.length < maxEvidencias && habilitado;
+    final puedeAgregar =
+        widget.evidencias.length < widget.maxEvidencias && widget.habilitado;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Header
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Row(
               children: [
-                Icon(
-                  Icons.camera_alt_rounded,
-                  size: 20,
+                FaIcon(
+                  FontAwesomeIcons.camera,
+                  size: 18,
                   color: theme.colorScheme.primary,
                 ),
                 const SizedBox(width: 8),
@@ -51,7 +74,7 @@ class ViajeEvidenciaUploader extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                if (obligatorio)
+                if (widget.obligatorio)
                   Text(
                     ' *',
                     style: TextStyle(
@@ -62,7 +85,7 @@ class ViajeEvidenciaUploader extends StatelessWidget {
               ],
             ),
             Text(
-              '${evidencias.length}/$maxEvidencias',
+              '${widget.evidencias.length}/${widget.maxEvidencias}',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
@@ -70,32 +93,31 @@ class ViajeEvidenciaUploader extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
-
-        // Grid de evidencias
-        if (evidencias.isEmpty && !puedeAgregar)
+        if (widget.evidencias.isEmpty && !puedeAgregar)
           _buildEmptyState(theme)
         else
           SizedBox(
             height: 100,
-            child: ListView(
+            child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              children: [
-                // Botón para agregar
-                if (puedeAgregar) _buildBotonAgregar(context, theme),
-
-                // Evidencias existentes
-                ...evidencias.asMap().entries.map((entry) {
-                  return Padding(
-                    padding: const EdgeInsets.only(left: 12),
-                    child: _buildEvidenciaItem(theme, entry.value, entry.key),
-                  );
-                }),
-              ],
+              itemCount: puedeAgregar
+                  ? widget.evidencias.length + 1
+                  : widget.evidencias.length,
+              separatorBuilder: (context, index) => const SizedBox(width: 12),
+              itemBuilder: (context, index) {
+                if (puedeAgregar && index == 0) {
+                  return _buildBotonAgregar(context, theme);
+                }
+                final evidenciaIndex = puedeAgregar ? index - 1 : index;
+                return _buildEvidenciaItem(
+                  theme,
+                  widget.evidencias[evidenciaIndex],
+                  evidenciaIndex,
+                );
+              },
             ),
           ),
-
-        // Indicador de subida
-        if (mostrarSubiendo) ...[
+        if (widget.mostrarSubiendo) ...[
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(12),
@@ -126,15 +148,13 @@ class ViajeEvidenciaUploader extends StatelessWidget {
             ),
           ),
         ],
-
-        // Mensaje de ayuda
-        if (obligatorio && evidencias.isEmpty) ...[
+        if (widget.obligatorio && widget.evidencias.isEmpty) ...[
           const SizedBox(height: 8),
           Row(
             children: [
-              Icon(
-                Icons.info_outline_rounded,
-                size: 14,
+              FaIcon(
+                FontAwesomeIcons.circleInfo,
+                size: 12,
                 color: theme.colorScheme.error,
               ),
               const SizedBox(width: 6),
@@ -155,7 +175,8 @@ class ViajeEvidenciaUploader extends StatelessWidget {
   Widget _buildBotonAgregar(BuildContext context, ThemeData theme) {
     return GestureDetector(
       onTap: () => _mostrarOpcionesCamara(context),
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
         width: 100,
         height: 100,
         decoration: BoxDecoration(
@@ -164,15 +185,14 @@ class ViajeEvidenciaUploader extends StatelessWidget {
           border: Border.all(
             color: theme.colorScheme.primary.withValues(alpha: 0.3),
             width: 2,
-            strokeAlign: BorderSide.strokeAlignInside,
           ),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.add_a_photo_rounded,
-              size: 32,
+            FaIcon(
+              FontAwesomeIcons.camera,
+              size: 28,
               color: theme.colorScheme.primary,
             ),
             const SizedBox(height: 6),
@@ -192,39 +212,45 @@ class ViajeEvidenciaUploader extends StatelessWidget {
   Widget _buildEvidenciaItem(ThemeData theme, File archivo, int index) {
     return Stack(
       children: [
-        Container(
-          width: 100,
-          height: 100,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: theme.colorScheme.outline.withValues(alpha: 0.2),
+        Hero(
+          tag: 'evidencia_$index',
+          child: Container(
+            width: 100,
+            height: 100,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: theme.colorScheme.outline.withValues(alpha: 0.2),
+              ),
             ),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(11),
-            child: Image.file(
-              archivo,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  child: Icon(
-                    Icons.broken_image_rounded,
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                  ),
-                );
-              },
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(11),
+              child: Image.file(
+                archivo,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    color: theme.colorScheme.surfaceContainerHighest,
+                    child: FaIcon(
+                      FontAwesomeIcons.triangleExclamation, // ✅ Corrección aquí
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                      size: 32,
+                    ),
+                  );
+                },
+              ),
             ),
           ),
         ),
-        // Botón eliminar
-        if (habilitado)
+        if (widget.habilitado)
           Positioned(
             top: 4,
             right: 4,
             child: GestureDetector(
-              onTap: () => onEliminarEvidencia?.call(index),
+              onTap: () {
+                widget.onEliminarEvidencia?.call(index);
+                _animationController.forward(from: 0);
+              },
               child: Container(
                 width: 24,
                 height: 24,
@@ -238,9 +264,9 @@ class ViajeEvidenciaUploader extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: const Icon(
-                  Icons.close_rounded,
-                  size: 16,
+                child: const FaIcon(
+                  FontAwesomeIcons.xmark,
+                  size: 12,
                   color: Colors.white,
                 ),
               ),
@@ -264,9 +290,9 @@ class ViajeEvidenciaUploader extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.photo_library_outlined,
-              size: 32,
+            FaIcon(
+              FontAwesomeIcons.images,
+              size: 28,
               color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
             ),
             const SizedBox(height: 8),
@@ -319,7 +345,7 @@ class ViajeEvidenciaUploader extends StatelessWidget {
                   Expanded(
                     child: _buildOpcionCamara(
                       context,
-                      icon: Icons.camera_alt_rounded,
+                      icon: FontAwesomeIcons.camera,
                       label: 'Cámara',
                       onTap: () => Navigator.pop(context, ImageSource.camera),
                     ),
@@ -328,7 +354,7 @@ class ViajeEvidenciaUploader extends StatelessWidget {
                   Expanded(
                     child: _buildOpcionCamara(
                       context,
-                      icon: Icons.photo_library_rounded,
+                      icon: FontAwesomeIcons.images,
                       label: 'Galería',
                       onTap: () => Navigator.pop(context, ImageSource.gallery),
                     ),
@@ -342,7 +368,7 @@ class ViajeEvidenciaUploader extends StatelessWidget {
       ),
     );
 
-    if (opcion != null) {
+    if (opcion != null && mounted) {
       final picker = ImagePicker();
       final XFile? imagen = await picker.pickImage(
         source: opcion,
@@ -351,8 +377,10 @@ class ViajeEvidenciaUploader extends StatelessWidget {
         imageQuality: 85,
       );
 
-      if (imagen != null) {
-        onAgregarEvidencia?.call(File(imagen.path));
+      if (imagen != null && mounted) {
+        widget.onAgregarEvidencia?.call(File(imagen.path));
+        // FIX: Forzar rebuild para mostrar imagen inmediatamente
+        setState(() {});
       }
     }
   }
@@ -375,7 +403,7 @@ class ViajeEvidenciaUploader extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 20),
           child: Column(
             children: [
-              Icon(icon, size: 32, color: theme.colorScheme.primary),
+              FaIcon(icon, size: 28, color: theme.colorScheme.primary),
               const SizedBox(height: 8),
               Text(
                 label,
