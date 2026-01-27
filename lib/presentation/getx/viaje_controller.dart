@@ -203,9 +203,13 @@ class ViajeController extends GetxController {
 
   void _sincronizarEstadoDesdeBackend(String estadoBackend) {
     estadoActual.value = EstadoViaje.fromString(estadoBackend);
+    _limpiarGeofencing();
     debugPrint(
       '📊 Estado sincronizado: $estadoBackend -> ${estadoActual.value}',
     );
+    Future.delayed(const Duration(milliseconds: 100), () {
+      _calcularGeofencing();
+    });
   }
 
   Future<void> refrescar() async {
@@ -815,11 +819,18 @@ class ViajeController extends GetxController {
 
   Future<void> _cambiarEstadoLocal(EstadoViaje nuevoEstado) async {
     estadoActual.value = nuevoEstado;
+    _limpiarGeofencing();
     await _offlineStorage.saveEstadoViajeOffline(
       asignacionId,
       nuevoEstado.toString(),
     );
     debugPrint('📊 Estado cambiado localmente a: $nuevoEstado');
+  }
+
+  void _limpiarGeofencing() {
+    distanciaAlDestino.value = null;
+    dentroDeGeofence.value = false;
+    debugPrint('🧹 Geofencing limpiado al cambiar de estado');
   }
 
   Future<void> _sincronizarAccionesPendientes() async {
@@ -1115,6 +1126,7 @@ class ViajeController extends GetxController {
     mineralVisible.value = true;
     mineralCargadoCompletamente.value = true;
     confirmacionLlegada.value = true;
+    _limpiarGeofencing();
     debugPrint('🧹 Formulario limpiado');
   }
 

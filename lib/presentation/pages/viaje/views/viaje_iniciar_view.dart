@@ -139,7 +139,7 @@ class _ViajeIniciarViewState extends State<ViajeIniciarView>
                   items: [
                     ViajeInfoItem(
                       label: 'Código',
-                      valor: lote.codigoLote,
+                      valor: "00${lote.loteId.toString()}",
                       icono: FontAwesomeIcons.hashtag,
                     ),
                     ViajeInfoItem(

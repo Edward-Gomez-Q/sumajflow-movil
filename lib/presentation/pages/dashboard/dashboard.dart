@@ -2,9 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:go_router/go_router.dart';
-import 'package:sumajflow_movil/core/services/auth_service.dart';
+import 'package:sumajflow_movil/config/routes/route_names.dart';
 import 'package:sumajflow_movil/presentation/getx/dashboard_controller.dart';
-import 'package:sumajflow_movil/presentation/widgets/cards/info_card.dart';
 import 'package:sumajflow_movil/presentation/widgets/cards/lote_card.dart';
 
 class Dashboard extends StatelessWidget {
@@ -12,14 +11,13 @@ class Dashboard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Inicializar el controller
-    final controller = Get.put(DashboardController());
+    final controller = Get.find<DashboardController>();
     final theme = Theme.of(context);
 
     return Scaffold(
+      appBar: AppBar(title: const Text('SumajFlow')),
       body: SafeArea(
         child: Obx(() {
-          // Mostrar loading solo en la carga inicial
           if (controller.isLoading.value) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -32,16 +30,12 @@ class Dashboard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Saludo personalizado
                   _buildGreeting(theme),
                   const SizedBox(height: 24),
-
-                  // Cards de información
-                  _buildInfoCards(controller),
+                  _buildLoteActivo(theme, controller, context),
                   const SizedBox(height: 24),
-
-                  // Lotes activos
-                  _buildActiveLotes(theme, controller, context),
+                  _buildEstadisticas(theme, controller, context),
+                  const SizedBox(height: 16),
                 ],
               ),
             ),
@@ -54,28 +48,26 @@ class Dashboard extends StatelessWidget {
   Widget _buildGreeting(ThemeData theme) {
     final hour = DateTime.now().hour;
     String greeting;
+    IconData greetingIcon;
 
     if (hour < 12) {
       greeting = 'Buenos días';
+      greetingIcon = Icons.wb_sunny_outlined;
     } else if (hour < 19) {
       greeting = 'Buenas tardes';
+      greetingIcon = Icons.wb_twilight_outlined;
     } else {
       greeting = 'Buenas noches';
+      greetingIcon = Icons.nightlight_outlined;
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
       children: [
+        Icon(greetingIcon, color: theme.colorScheme.primary, size: 28),
+        const SizedBox(width: 12),
         Text(
           greeting,
-          style: theme.textTheme.titleMedium?.copyWith(
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          AuthService.to.correo ?? 'Transportista',
-          style: theme.textTheme.headlineMedium?.copyWith(
+          style: theme.textTheme.headlineSmall?.copyWith(
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -83,39 +75,13 @@ class Dashboard extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoCards(DashboardController controller) {
-    return Obx(
-      () => Row(
-        children: [
-          Expanded(
-            child: InfoCard(
-              icon: Icons.local_shipping_outlined,
-              title: 'En Tránsito',
-              value: controller.totalEnTransito.value.toString(),
-              color: Colors.blue,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: InfoCard(
-              icon: Icons.check_circle_outline,
-              title: 'Completados',
-              value: controller.totalCompletados.value.toString(),
-              color: Colors.green,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActiveLotes(
+  Widget _buildLoteActivo(
     ThemeData theme,
     DashboardController controller,
     BuildContext context,
   ) {
     return Obx(() {
-      final lotesParaMostrar = controller.lotesParaDashboard;
+      final loteActivo = controller.loteActivo;
 
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -124,77 +90,205 @@ class Dashboard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Lotes Activos',
+                'Lote Activo',
                 style: theme.textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              TextButton(
-                onPressed: () {
-                  context.push('/lotes');
-                },
-                child: const Text('Ver todos'),
-              ),
+              if (loteActivo != null)
+                TextButton.icon(
+                  onPressed: () {
+                    context.push(
+                      '${RouteNames.loteDetalle}/${loteActivo.asignacionId}',
+                    );
+                  },
+                  icon: const Icon(Icons.arrow_forward, size: 18),
+                  label: const Text('Ver detalles'),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 12),
-
-          if (lotesParaMostrar.isEmpty)
-            _buildEmptyState(theme)
+          if (loteActivo == null)
+            _buildEmptyLoteState(theme)
           else
-            ...lotesParaMostrar.map(
-              (lote) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: LoteCard(
-                  loteCode: lote.loteId.toString(),
-                  destino: lote.destinoNombre ?? lote.minaNombre,
-                  estado: lote.estadoDisplay,
-                  fecha: _formatearFecha(lote.fechaAsignacion),
-                  onTap: () {
-                    // Navegar a detalle del lote
-                    context.push('/lote/${lote.asignacionId}');
-                  },
-                ),
-              ),
+            LoteCard(
+              loteCode: loteActivo.loteId.toString(),
+              destino: loteActivo.destinoNombre ?? loteActivo.minaNombre,
+              estado: loteActivo.estadoDisplay,
+              fecha: _formatearFecha(loteActivo.fechaAsignacion),
+              onTap: () {
+                context.push(
+                  '${RouteNames.loteDetalle}/${loteActivo.asignacionId}',
+                );
+              },
             ),
         ],
       );
     });
   }
 
-  Widget _buildEmptyState(ThemeData theme) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: theme.colorScheme.outline.withValues(alpha: 0.2),
+  Widget _buildEmptyLoteState(ThemeData theme) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.local_shipping_outlined,
+                size: 48,
+                color: theme.colorScheme.primary,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Sin lote activo',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Tu próximo lote asignado aparecerá aquí',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
       ),
-      child: Column(
+    );
+  }
+
+  Widget _buildEstadisticas(
+    ThemeData theme,
+    DashboardController controller,
+    BuildContext context,
+  ) {
+    return Obx(() {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.inbox_outlined,
-            size: 64,
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Resumen',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              TextButton.icon(
+                onPressed: () {
+                  context.go(RouteNames.lotes);
+                },
+                icon: const Icon(Icons.history, size: 18),
+                label: const Text('Historial'),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
-          Text(
-            'No tienes lotes activos',
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-            ),
+
+          // Cards en vertical - diseño limpio
+          _buildStatCard(
+            theme,
+            icon: Icons.check_circle_outline,
+            title: 'Lotes Completados',
+            value: controller.totalCompletados.value.toString(),
+            color: Colors.green,
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Los lotes asignados aparecerán aquí',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-            ),
-            textAlign: TextAlign.center,
+          const SizedBox(height: 12),
+          _buildStatCard(
+            theme,
+            icon: Icons.local_shipping_outlined,
+            title: 'Lotes en Tránsito',
+            value: controller.totalEnTransito.value.toString(),
+            color: Colors.blue,
+          ),
+          const SizedBox(height: 12),
+          _buildStatCard(
+            theme,
+            icon: Icons.route_outlined,
+            title: 'Distancia Total Recorrida',
+            value: '${controller.totalDistanciaKm.value.toStringAsFixed(1)} km',
+            color: Colors.orange,
+          ),
+          const SizedBox(height: 12),
+          _buildStatCard(
+            theme,
+            icon: Icons.schedule_outlined,
+            title: 'Tiempo Total de Viaje',
+            value: '${controller.totalHorasViaje.value.toStringAsFixed(1)} hrs',
+            color: Colors.purple,
           ),
         ],
+      );
+    });
+  }
+
+  Widget _buildStatCard(
+    ThemeData theme, {
+    required IconData icon,
+    required String title,
+    required String value,
+    required Color color,
+  }) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, size: 24, color: color),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    value,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: color,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    title,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

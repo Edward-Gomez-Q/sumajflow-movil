@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:go_router/go_router.dart';
+import 'package:sumajflow_movil/config/routes/route_names.dart';
 import 'package:sumajflow_movil/presentation/getx/dashboard_controller.dart';
 import 'package:sumajflow_movil/presentation/widgets/cards/lote_card.dart';
 
@@ -14,33 +15,7 @@ class LotesPage extends StatefulWidget {
 
 class _LotesPageState extends State<LotesPage> {
   final _searchController = TextEditingController();
-
-  // Obtener el controller (debe estar ya inicializado desde Dashboard)
   late final DashboardController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    // Si el controller no está inicializado, lo inicializamos
-    if (Get.isRegistered<DashboardController>()) {
-      _controller = Get.find<DashboardController>();
-    } else {
-      _controller = Get.put(DashboardController());
-    }
-  }
-
-  // Mapeo de filtros UI a filtros API
-  String _getApiFiltro(String uiFiltro) {
-    switch (uiFiltro) {
-      case 'Pendiente':
-      case 'En Tránsito':
-        return 'activos';
-      case 'Completado':
-        return 'completados';
-      default: // 'Todos'
-        return 'todos';
-    }
-  }
 
   final List<String> _filters = [
     'Todos',
@@ -50,6 +25,25 @@ class _LotesPageState extends State<LotesPage> {
   ];
 
   String _selectedFilter = 'Todos';
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Inicializar controller
+    if (Get.isRegistered<DashboardController>()) {
+      _controller = Get.find<DashboardController>();
+    } else {
+      _controller = Get.put(DashboardController());
+    }
+
+    // CORRECCIÓN: Asegurar que se cargan todos los lotes al iniciar
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_controller.todosLosLotes.isEmpty) {
+        _controller.cargarTodosLosLotes();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -103,9 +97,7 @@ class _LotesPageState extends State<LotesPage> {
                     selected: isSelected,
                     onSelected: (selected) {
                       setState(() => _selectedFilter = filter);
-                      // Cargar lotes según el filtro de API
-                      final apiFiltro = _getApiFiltro(filter);
-                      _controller.cargarLotesPorFiltro(apiFiltro);
+                      _controller.cambiarFiltro(_mapearFiltroUI(filter));
                     },
                     backgroundColor: theme.colorScheme.surface,
                     selectedColor: theme.colorScheme.primary.withValues(
@@ -139,8 +131,8 @@ class _LotesPageState extends State<LotesPage> {
                 return const Center(child: CircularProgressIndicator());
               }
 
-              // Obtener lotes del controller
-              var lotes = _controller.lotesVisibles;
+              // Obtener lotes según el filtro seleccionado
+              var lotes = _obtenerLotesFiltrados();
 
               // Aplicar filtro de búsqueda local
               if (_searchController.text.isNotEmpty) {
@@ -150,14 +142,6 @@ class _LotesPageState extends State<LotesPage> {
                       (lote.destinoNombre?.toLowerCase().contains(query) ??
                           false) ||
                       lote.minaNombre.toLowerCase().contains(query);
-                }).toList();
-              }
-
-              // Aplicar filtro de estado local para UI (cuando el filtro es específico)
-              if (_selectedFilter != 'Todos') {
-                lotes = lotes.where((lote) {
-                  final estadoDisplay = lote.estadoDisplay;
-                  return estadoDisplay == _selectedFilter;
                 }).toList();
               }
 
@@ -180,8 +164,9 @@ class _LotesPageState extends State<LotesPage> {
                         estado: lote.estadoDisplay,
                         fecha: _formatearFecha(lote.fechaAsignacion),
                         onTap: () {
-                          // Navegar a detalles
-                          context.push('/lote/${lote.asignacionId}');
+                          context.push(
+                            '${RouteNames.loteDetalle}/${lote.asignacionId}',
+                          );
                         },
                       ),
                     );
@@ -193,6 +178,37 @@ class _LotesPageState extends State<LotesPage> {
         ],
       ),
     );
+  }
+
+  // NUEVO: Mapear filtro UI a filtro del controller
+  String _mapearFiltroUI(String filtroUI) {
+    switch (filtroUI) {
+      case 'Pendiente':
+      case 'En Tránsito':
+        return 'activos';
+      case 'Completado':
+        return 'completados';
+      default: // 'Todos'
+        return 'todos';
+    }
+  }
+
+  // NUEVO: Obtener lotes filtrados según la selección
+  List<dynamic> _obtenerLotesFiltrados() {
+    switch (_selectedFilter) {
+      case 'Pendiente':
+        return _controller.lotesActivos
+            .where((lote) => lote.estaPendienteIniciar)
+            .toList();
+      case 'En Tránsito':
+        return _controller.lotesActivos
+            .where((lote) => lote.estaEnCurso)
+            .toList();
+      case 'Completado':
+        return _controller.lotesCompletados;
+      default: // 'Todos'
+        return _controller.todosLosLotes;
+    }
   }
 
   Widget _buildEmptyState(ThemeData theme) {

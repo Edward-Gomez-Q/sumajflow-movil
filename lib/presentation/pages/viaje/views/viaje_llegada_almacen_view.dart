@@ -18,12 +18,13 @@ class ViajeLlegadaAlmacenView extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return SafeArea(
-      child: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
+    return Column(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: SafeArea(
+              bottom: false,
               child: Column(
                 children: [
                   ViajeEstadoHeader(
@@ -108,14 +109,14 @@ class ViajeLlegadaAlmacenView extends StatelessWidget {
                     onChanged: controller.actualizarComentario,
                     hint: 'Notas sobre la llegada al almacén...',
                   ),
-                  const SizedBox(height: 100),
+                  const SizedBox(height: 20),
                 ],
               ),
             ),
           ),
-          _buildBottomButton(theme),
-        ],
-      ),
+        ),
+        _buildBottomButton(theme),
+      ],
     );
   }
 

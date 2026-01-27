@@ -77,11 +77,6 @@ class ViajeStateHandler extends StatelessWidget {
         // PASO 8: Completado - Vista de éxito
         case EstadoViaje.completado:
           return ViajeCompletadoView(controller: controller);
-
-        // Fallback (no debería ocurrir)
-        default:
-          debugPrint('⚠️ Estado no manejado: $estado');
-          return ViajeEnCaminoView(controller: controller);
       }
     });
   }

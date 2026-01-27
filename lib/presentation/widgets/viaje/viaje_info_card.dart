@@ -29,10 +29,11 @@ class ViajeInfoCard extends StatelessWidget {
       tween: Tween(begin: 0.0, end: 1.0),
       curve: Curves.easeOut,
       builder: (context, value, child) {
+        final clampedValue = value.clamp(0.0, 1.0);
         return Opacity(
-          opacity: value,
+          opacity: clampedValue,
           child: Transform.translate(
-            offset: Offset(0, 10 * (1 - value)),
+            offset: Offset(0, 10 * (1 - clampedValue)),
             child: child,
           ),
         );
@@ -287,9 +288,11 @@ class ViajeAlertCard extends StatelessWidget {
       tween: Tween(begin: 0.0, end: 1.0),
       curve: Curves.easeOutBack,
       builder: (context, value, child) {
+        final clampedValue = value.clamp(0.0, 1.0);
+        final scaleValue = (0.8 + (0.2 * clampedValue)).clamp(0.0, 1.0);
         return Opacity(
-          opacity: value,
-          child: Transform.scale(scale: 0.8 + (0.2 * value), child: child),
+          opacity: clampedValue,
+          child: Transform.scale(scale: scaleValue, child: child),
         );
       },
       child: Container(

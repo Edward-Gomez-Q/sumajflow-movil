@@ -5,8 +5,8 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sumajflow_movil/config/routes/route_names.dart';
-import 'package:sumajflow_movil/data/repositories/lotes_repository.dart';
 import 'package:sumajflow_movil/presentation/getx/viaje_controller.dart';
+import 'package:sumajflow_movil/presentation/getx/dashboard_controller.dart';
 import 'package:sumajflow_movil/presentation/widgets/viaje/viaje_action_button.dart';
 
 class ViajeCompletadoView extends StatefulWidget {
@@ -62,124 +62,165 @@ class _ViajeCompletadoViewState extends State<ViajeCompletadoView>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ScaleTransition(
-              scale: _bounceAnimation,
-              child: Container(
-                width: 140,
-                height: 140,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF10B981), Color(0xFF059669)],
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF10B981).withValues(alpha: 0.4),
-                      blurRadius: 30,
-                      offset: const Offset(0, 10),
+    return Column(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: SafeArea(
+              bottom: false,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: MediaQuery.of(context).size.height - 180,
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ScaleTransition(
+                      scale: _bounceAnimation,
+                      child: Container(
+                        width: 140,
+                        height: 140,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF10B981), Color(0xFF059669)],
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(
+                                0xFF10B981,
+                              ).withValues(alpha: 0.4),
+                              blurRadius: 30,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
+                        ),
+                        child: const Center(
+                          child: FaIcon(
+                            FontAwesomeIcons.trophy,
+                            size: 56,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
                     ),
+                    const SizedBox(height: 32),
+                    FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: Column(
+                        children: [
+                          Text(
+                            '¡Viaje Completado!',
+                            style: theme.textTheme.headlineMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF10B981),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Has completado exitosamente el transporte de mineral.',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.6,
+                              ),
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+                    Obx(() {
+                      final lote = widget.controller.loteDetalle.value;
+                      if (lote == null) return const SizedBox.shrink();
+
+                      return FadeTransition(
+                        opacity: _fadeAnimation,
+                        child: Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surface,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: theme.colorScheme.outline.withValues(
+                                alpha: 0.2,
+                              ),
+                            ),
+                          ),
+                          child: Column(
+                            children: [
+                              _buildInfoRow(
+                                icon: FontAwesomeIcons.hashtag,
+                                label: 'Código Lote',
+                                value: "00${lote.loteId.toString()}",
+                                theme: theme,
+                              ),
+                              const SizedBox(height: 12),
+                              _buildInfoRow(
+                                icon: FontAwesomeIcons.mountain,
+                                label: 'Origen',
+                                value: lote.minaNombre,
+                                theme: theme,
+                              ),
+                              const SizedBox(height: 12),
+                              _buildInfoRow(
+                                icon: FontAwesomeIcons.flagCheckered,
+                                label: 'Destino',
+                                value: lote.destinoTipo,
+                                theme: theme,
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }),
+                    const SizedBox(height: 20),
                   ],
                 ),
-                child: const Center(
-                  child: FaIcon(
-                    FontAwesomeIcons.trophy,
-                    size: 56,
-                    color: Colors.white,
-                  ),
-                ),
               ),
             ),
-            const SizedBox(height: 32),
-            FadeTransition(
-              opacity: _fadeAnimation,
-              child: Column(
-                children: [
-                  Text(
-                    '¡Viaje Completado!',
-                    style: theme.textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF10B981),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Has completado exitosamente el transporte de mineral.',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 20,
+                offset: const Offset(0, -4),
               ),
-            ),
-            const SizedBox(height: 40),
-            Obx(() {
-              final lote = widget.controller.loteDetalle.value;
-              if (lote == null) return const SizedBox.shrink();
-
-              return FadeTransition(
-                opacity: _fadeAnimation,
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surface,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: theme.colorScheme.outline.withValues(alpha: 0.2),
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      _buildInfoRow(
-                        icon: FontAwesomeIcons.hashtag,
-                        label: 'Código Lote',
-                        value: lote.codigoLote,
-                        theme: theme,
-                      ),
-                      const SizedBox(height: 12),
-                      _buildInfoRow(
-                        icon: FontAwesomeIcons.mountain,
-                        label: 'Origen',
-                        value: lote.minaNombre,
-                        theme: theme,
-                      ),
-                      const SizedBox(height: 12),
-                      _buildInfoRow(
-                        icon: FontAwesomeIcons.flagCheckered,
-                        label: 'Destino',
-                        value: lote.destinoTipo,
-                        theme: theme,
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }),
-            const Spacer(),
-            ViajeActionButton(
+            ],
+          ),
+          child: SafeArea(
+            top: false,
+            child: ViajeActionButton(
               texto: 'Volver al Inicio',
               icono: FontAwesomeIcons.house,
               habilitado: true,
               colorPrimario: const Color(0xFF10B981),
-              onPressed: () {
+              onPressed: () async {
                 Get.delete<ViajeController>(
                   tag: 'viaje_${widget.controller.asignacionId}',
                 );
-                //Recargar el dashboard para actualizar el estado del viaje
-                LotesRepository controller = Get.find<LotesRepository>();
-                controller.getMisLotes();
-                context.go(RouteNames.dashboard);
+
+                final dashboardController =
+                    Get.isRegistered<DashboardController>()
+                    ? Get.find<DashboardController>()
+                    : Get.put(DashboardController());
+
+                await dashboardController.refrescar();
+
+                if (context.mounted) {
+                  context.go(RouteNames.dashboard);
+                }
               },
             ),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
 

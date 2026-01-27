@@ -11,6 +11,7 @@ import 'package:sumajflow_movil/core/services/offline_storage_service.dart';
 import 'package:sumajflow_movil/core/services/websocket_service.dart';
 import 'package:sumajflow_movil/core/theme/app_theme.dart';
 import 'package:sumajflow_movil/presentation/getx/theme_controller.dart';
+import 'package:sumajflow_movil/presentation/getx/dashboard_controller.dart';
 
 import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
 
@@ -27,7 +28,6 @@ Future<void> main() async {
   try {
     debugPrint('🚀 Inicializando servicios...');
 
-    // Servicios críticos
     await Get.putAsync(() => AuthService().init());
     debugPrint('✅ AuthService inicializado');
 
@@ -37,7 +37,6 @@ Future<void> main() async {
     await Get.putAsync(() => LocationService().init());
     debugPrint('✅ LocationService inicializado');
 
-    // WebSocket - no crítico, puede fallar sin detener la app
     try {
       await Get.putAsync(() => WebSocketService().init()).timeout(
         const Duration(seconds: 5),
@@ -49,7 +48,6 @@ Future<void> main() async {
       debugPrint('✅ WebSocketService inicializado');
     } catch (e) {
       debugPrint('⚠️ WebSocketService no disponible: $e');
-      // Crear instancia desconectada para evitar errores al acceder
       Get.put(WebSocketService());
     }
 
@@ -58,6 +56,9 @@ Future<void> main() async {
 
     Get.put(ThemeController());
     debugPrint('✅ ThemeController inicializado');
+
+    Get.put(DashboardController(), permanent: true);
+    debugPrint('✅ DashboardController inicializado');
 
     debugPrint('✅ Todos los servicios inicializados correctamente');
   } catch (e, st) {

@@ -198,12 +198,6 @@ class TrackingRepository {
           'Error de conexión desconocido',
           type: NetworkExceptionType.unknown,
         );
-
-      default:
-        return NetworkException(
-          'Error de conexión',
-          type: NetworkExceptionType.unknown,
-        );
     }
   }
 }

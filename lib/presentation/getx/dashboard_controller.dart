@@ -17,11 +17,14 @@ class DashboardController extends GetxController {
 
   // Listas de lotes
   var lotesActivos = <LoteAsignadoModel>[].obs;
+  var lotesCompletados = <LoteAsignadoModel>[].obs;
   var todosLosLotes = <LoteAsignadoModel>[].obs;
 
   // Estadísticas
   var totalEnTransito = 0.obs;
   var totalCompletados = 0.obs;
+  var totalDistanciaKm = 0.0.obs;
+  var totalHorasViaje = 0.0.obs;
 
   @override
   void onInit() {
@@ -33,32 +36,31 @@ class DashboardController extends GetxController {
   Future<void> cargarLotesIniciales() async {
     isLoading.value = true;
     try {
-      await cargarLotesPorFiltro('activos');
+      await cargarTodosLosLotes();
       await calcularEstadisticas();
     } finally {
       isLoading.value = false;
     }
   }
 
-  /// Carga lotes según el filtro seleccionado
-  Future<void> cargarLotesPorFiltro(String filtro) async {
+  /// Carga TODOS los lotes y los separa por estado
+  Future<void> cargarTodosLosLotes() async {
     try {
-      debugPrint('🔄 Cargando lotes con filtro: $filtro');
+      debugPrint('🔄 Cargando TODOS los lotes');
 
-      filtroActual.value = filtro;
+      final lotes = await _lotesRepository.getMisLotes(filtro: 'todos');
 
-      final lotes = await _lotesRepository.getMisLotes(filtro: filtro);
+      debugPrint('✅ Lotes cargados: ${lotes.length}');
 
-      debugPrint('  Lotes cargados: ${lotes.length}');
+      // Separar por estado
+      todosLosLotes.value = lotes;
+      lotesActivos.value = lotes.where((lote) => lote.estaActivo).toList();
+      lotesCompletados.value = lotes
+          .where((lote) => lote.estaCompletado)
+          .toList();
 
-      if (filtro == 'activos') {
-        lotesActivos.value = lotes;
-      } else {
-        todosLosLotes.value = lotes;
-      }
-
-      // Siempre actualizar estadísticas
-      await calcularEstadisticas();
+      debugPrint('   Activos: ${lotesActivos.length}');
+      debugPrint('   Completados: ${lotesCompletados.length}');
     } catch (e) {
       debugPrint('❌ Error al cargar lotes: $e');
       _notificationService.showError(
@@ -68,11 +70,28 @@ class DashboardController extends GetxController {
     }
   }
 
+  /// Carga lotes según el filtro seleccionado
+  Future<void> cargarLotesPorFiltro(String filtro) async {
+    try {
+      debugPrint('🔄 Cambiando filtro a: $filtro');
+      filtroActual.value = filtro;
+
+      // Si ya tenemos todos los lotes cargados, solo cambiamos la vista
+      // Si no, recargamos todo
+      if (todosLosLotes.isEmpty) {
+        await cargarTodosLosLotes();
+      }
+    } catch (e) {
+      debugPrint('❌ Error al cambiar filtro: $e');
+    }
+  }
+
   /// Refresca los datos
   Future<void> refrescar() async {
     isRefreshing.value = true;
     try {
-      await cargarLotesPorFiltro(filtroActual.value);
+      await cargarTodosLosLotes();
+      await calcularEstadisticas();
     } finally {
       isRefreshing.value = false;
     }
@@ -81,32 +100,32 @@ class DashboardController extends GetxController {
   /// Calcula las estadísticas del dashboard
   Future<void> calcularEstadisticas() async {
     try {
-      // Obtener todos los lotes para estadísticas
-      final todosLotes = await _lotesRepository.getMisLotes(filtro: 'todos');
-
-      // Contar en tránsito (activos pero no pendientes ni completados)
-      totalEnTransito.value = todosLotes.where((lote) {
+      // Contar en tránsito
+      totalEnTransito.value = lotesActivos.where((lote) {
         return lote.estaEnCurso;
       }).length;
 
       // Contar completados
-      totalCompletados.value = todosLotes.where((lote) {
-        return lote.estaCompletado;
-      }).length;
+      totalCompletados.value = lotesCompletados.length;
+
+      // Datos de ejemplo (reemplazar con datos reales cuando estén disponibles)
+      totalDistanciaKm.value = lotesCompletados.length * 45.5;
+      totalHorasViaje.value = lotesCompletados.length * 2.3;
 
       debugPrint('📊 Estadísticas actualizadas:');
       debugPrint('   En tránsito: ${totalEnTransito.value}');
       debugPrint('   Completados: ${totalCompletados.value}');
+      debugPrint('   Distancia total: ${totalDistanciaKm.value} km');
+      debugPrint('   Tiempo total: ${totalHorasViaje.value} hrs');
     } catch (e) {
       debugPrint('❌ Error al calcular estadísticas: $e');
-      // No mostramos error al usuario, solo log
     }
   }
 
   /// Cambia el filtro de visualización
   void cambiarFiltro(String nuevoFiltro) {
     if (filtroActual.value != nuevoFiltro) {
-      cargarLotesPorFiltro(nuevoFiltro);
+      filtroActual.value = nuevoFiltro;
     }
   }
 
@@ -116,6 +135,7 @@ class DashboardController extends GetxController {
       case 'activos':
         return lotesActivos;
       case 'completados':
+        return lotesCompletados;
       case 'todos':
         return todosLosLotes;
       default:
@@ -123,8 +143,17 @@ class DashboardController extends GetxController {
     }
   }
 
-  /// Obtiene solo los primeros N lotes para el dashboard
-  List<LoteAsignadoModel> get lotesParaDashboard {
-    return lotesActivos.take(3).toList();
+  /// Obtiene el lote activo actual (solo uno)
+  LoteAsignadoModel? get loteActivo {
+    // Priorizar lotes en curso, luego pendientes
+    final enCurso = lotesActivos.where((l) => l.estaEnCurso).toList();
+    if (enCurso.isNotEmpty) return enCurso.first;
+
+    final pendientes = lotesActivos
+        .where((l) => l.estaPendienteIniciar)
+        .toList();
+    if (pendientes.isNotEmpty) return pendientes.first;
+
+    return null;
   }
 }
