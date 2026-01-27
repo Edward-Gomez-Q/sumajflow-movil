@@ -289,31 +289,31 @@ class ViajeController extends GetxController {
 
       switch (estadoActual.value) {
         case EstadoViaje.esperandoIniciar:
-          await _paso1_IniciarViaje(pos, online);
+          await pasoUnoIniciarViaje(pos, online);
           break;
 
         case EstadoViaje.enCaminoMina:
-          await _paso2_LlegadaMina(pos, online);
+          await pasoDosLlegadaMina(pos, online);
           break;
 
         case EstadoViaje.esperandoCarguio:
-          await _paso3_ConfirmarCarguio(pos, online);
+          await pasoTresConfirmarCarguio(pos, online);
           break;
 
         case EstadoViaje.enCaminoBalanzaCoop:
-          await _paso4_PesajeCooperativa(pos, online);
+          await pasoCuatroPesajeCooperativa(pos, online);
           break;
 
         case EstadoViaje.enCaminoBalanzaDestino:
-          await _paso5_PesajeDestino(pos, online);
+          await pasoCincoPesajeDestino(pos, online);
           break;
 
         case EstadoViaje.enCaminoAlmacenDestino:
-          await _paso6_LlegadaAlmacen(pos, online);
+          await pasoSeisLlegadaAlmacen(pos, online);
           break;
 
         case EstadoViaje.descargando:
-          await _paso7_ConfirmarDescarga(pos, online);
+          await pasoSieteConfirmarDescarga(pos, online);
           break;
 
         default:
@@ -332,7 +332,7 @@ class ViajeController extends GetxController {
   // PASO 1: INICIAR VIAJE
   // ============================================================
 
-  Future<void> _paso1_IniciarViaje(Position pos, bool online) async {
+  Future<void> pasoUnoIniciarViaje(Position pos, bool online) async {
     debugPrint('🚀 PASO 1: Iniciar viaje (${online ? "online" : "offline"})');
 
     if (online) {
@@ -384,7 +384,7 @@ class ViajeController extends GetxController {
   // PASO 2: LLEGADA A MINA
   // ============================================================
 
-  Future<void> _paso2_LlegadaMina(Position pos, bool online) async {
+  Future<void> pasoDosLlegadaMina(Position pos, bool online) async {
     debugPrint('🏔️ PASO 2: Llegada a mina (${online ? "online" : "offline"})');
 
     if (online) {
@@ -437,7 +437,7 @@ class ViajeController extends GetxController {
   // PASO 3: CONFIRMAR CARGUÍO
   // ============================================================
 
-  Future<void> _paso3_ConfirmarCarguio(Position pos, bool online) async {
+  Future<void> pasoTresConfirmarCarguio(Position pos, bool online) async {
     debugPrint('🚛 PASO 3: Carguío (${online ? "online" : "offline"})');
 
     // Validar evidencias
@@ -450,7 +450,7 @@ class ViajeController extends GetxController {
       try {
         await _subirEvidenciasPendientes();
       } on NetworkException catch (e) {
-        debugPrint('📴 No se pudieron subir evidencias');
+        debugPrint('📴 No se pudieron subir evidencias: $e');
       }
     }
 
@@ -503,7 +503,7 @@ class ViajeController extends GetxController {
   // PASO 4: PESAJE COOPERATIVA
   // ============================================================
 
-  Future<void> _paso4_PesajeCooperativa(Position pos, bool online) async {
+  Future<void> pasoCuatroPesajeCooperativa(Position pos, bool online) async {
     debugPrint(
       '⚖️ PASO 4: Pesaje cooperativa (${online ? "online" : "offline"})',
     );
@@ -514,7 +514,7 @@ class ViajeController extends GetxController {
       try {
         await _subirEvidenciasPendientes();
       } on NetworkException catch (e) {
-        debugPrint('📴 No se pudieron subir evidencias');
+        debugPrint('📴 No se pudieron subir evidencias: $e');
       }
     }
 
@@ -568,7 +568,7 @@ class ViajeController extends GetxController {
   // PASO 5: PESAJE DESTINO
   // ============================================================
 
-  Future<void> _paso5_PesajeDestino(Position pos, bool online) async {
+  Future<void> pasoCincoPesajeDestino(Position pos, bool online) async {
     debugPrint('⚖️ PASO 5: Pesaje destino (${online ? "online" : "offline"})');
     _validarDatosPesaje();
 
@@ -577,7 +577,7 @@ class ViajeController extends GetxController {
       try {
         await _subirEvidenciasPendientes();
       } on NetworkException catch (e) {
-        debugPrint('📴 No se pudieron subir evidencias');
+        debugPrint('📴 No se pudieron subir evidencias: $e');
       }
     }
 
@@ -631,7 +631,7 @@ class ViajeController extends GetxController {
   // PASO 6: LLEGADA A ALMACÉN
   // ============================================================
 
-  Future<void> _paso6_LlegadaAlmacen(Position pos, bool online) async {
+  Future<void> pasoSeisLlegadaAlmacen(Position pos, bool online) async {
     debugPrint(
       '🏭 PASO 6: Llegada a almacén (${online ? "online" : "offline"})',
     );
@@ -686,7 +686,7 @@ class ViajeController extends GetxController {
   // PASO 7: CONFIRMAR DESCARGA
   // ============================================================
 
-  Future<void> _paso7_ConfirmarDescarga(Position pos, bool online) async {
+  Future<void> pasoSieteConfirmarDescarga(Position pos, bool online) async {
     debugPrint('📦 PASO 7: Descarga (${online ? "online" : "offline"})');
 
     if (evidenciasTemporales.isEmpty && evidenciasSubidas.isEmpty) {
@@ -698,7 +698,7 @@ class ViajeController extends GetxController {
       try {
         await _subirEvidenciasPendientes();
       } on NetworkException catch (e) {
-        debugPrint('📴 No se pudieron subir evidencias');
+        debugPrint('📴 No se pudieron subir evidencias: $e');
       }
     }
 
@@ -718,7 +718,7 @@ class ViajeController extends GetxController {
 
           // IMPORTANTE: Ahora necesitamos llamar a finalizar ruta
           // para completar el viaje (PASO 8)
-          await _paso8_FinalizarRuta(pos, online);
+          await pasoOchoFinalizarRuta(pos, online);
         } else {
           throw Exception(response.message);
         }
@@ -746,7 +746,7 @@ class ViajeController extends GetxController {
   // PASO 8: FINALIZAR RUTA (Automático después de descarga)
   // ============================================================
 
-  Future<void> _paso8_FinalizarRuta(Position pos, bool online) async {
+  Future<void> pasoOchoFinalizarRuta(Position pos, bool online) async {
     debugPrint('✅ PASO 8: Finalizar ruta (${online ? "online" : "offline"})');
 
     if (online) {
@@ -1226,8 +1226,6 @@ class ViajeController extends GetxController {
         return 'Finalizar Descarga';
       case EstadoViaje.completado:
         return 'Viaje Completado';
-      default:
-        return 'Continuar';
     }
   }
 
@@ -1248,8 +1246,6 @@ class ViajeController extends GetxController {
         return Icons.download_rounded;
       case EstadoViaje.completado:
         return Icons.check_circle_rounded;
-      default:
-        return Icons.arrow_forward_rounded;
     }
   }
 
@@ -1275,8 +1271,6 @@ class ViajeController extends GetxController {
         return evidenciasTemporales.isNotEmpty || evidenciasSubidas.isNotEmpty;
       case EstadoViaje.completado:
         return false;
-      default:
-        return false;
     }
   }
 
@@ -1298,8 +1292,6 @@ class ViajeController extends GetxController {
         return 'Descargando mineral';
       case EstadoViaje.completado:
         return 'Viaje finalizado exitosamente';
-      default:
-        return '';
     }
   }
 

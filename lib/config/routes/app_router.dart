@@ -1,9 +1,15 @@
+// lib/config/routes/app_router.dart
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sumajflow_movil/core/services/auth_service.dart';
 import 'package:sumajflow_movil/presentation/pages/dashboard/dashboard.dart';
 import 'package:sumajflow_movil/presentation/pages/login/login.dart';
 import 'package:sumajflow_movil/presentation/pages/lotes/lote_detalle_page.dart';
+import 'package:sumajflow_movil/presentation/pages/perfil/views/cambiar_contrasena_view.dart';
+import 'package:sumajflow_movil/presentation/pages/perfil/views/cambiar_correo_view.dart';
+import 'package:sumajflow_movil/presentation/pages/perfil/views/datos_personales_view.dart';
+import 'package:sumajflow_movil/presentation/pages/perfil/views/datos_transportista_view.dart';
 import 'package:sumajflow_movil/presentation/pages/splash/splash.dart';
 import 'package:sumajflow_movil/presentation/pages/home/home.dart';
 import 'package:sumajflow_movil/presentation/pages/qr_scanner/qr_scanner.dart';
@@ -17,7 +23,6 @@ import 'package:sumajflow_movil/config/routes/route_names.dart';
 import 'package:sumajflow_movil/presentation/pages/viaje/viaje_page.dart';
 import 'package:sumajflow_movil/presentation/widgets/navigation/bottom_nav_bar.dart';
 
-// Navegación de shell para páginas con bottom nav
 class _ShellRouteNavigator extends StatelessWidget {
   final Widget child;
 
@@ -65,12 +70,10 @@ class AppRouter {
       final isAuthenticated = authService.isAuthenticated;
       final currentLocation = state.uri.path;
 
-      // Si está en splash, dejarlo pasar
       if (currentLocation == RouteNames.splash) {
         return null;
       }
 
-      // Rutas públicas que no requieren autenticación
       final publicRoutes = [
         RouteNames.home,
         RouteNames.login,
@@ -82,17 +85,14 @@ class AppRouter {
             currentLocation == route || currentLocation.startsWith(route),
       );
 
-      // Rutas de onboarding que tampoco requieren autenticación
       final isOnboardingRoute =
           currentLocation.startsWith(RouteNames.verificacionCodigo) ||
           currentLocation.startsWith(RouteNames.onboarding);
 
-      // Si está autenticado y trata de ir a una ruta pública, redirigir a dashboard
       if (isAuthenticated && (isPublicRoute || isOnboardingRoute)) {
         return RouteNames.dashboard;
       }
 
-      // Si no está autenticado y trata de ir a una ruta privada, redirigir a home
       if (!isAuthenticated && !isPublicRoute && !isOnboardingRoute) {
         return RouteNames.home;
       }
@@ -132,6 +132,28 @@ class AppRouter {
         path: RouteNames.login,
         builder: (context, state) => const Login(),
       ),
+      GoRoute(
+        path: '${RouteNames.loteDetalle}/:asignacionId',
+        builder: (context, state) {
+          final asignacionIdStr = state.pathParameters['asignacionId'] ?? '0';
+          final asignacionId = int.tryParse(asignacionIdStr) ?? 0;
+          return LoteDetallePage(asignacionId: asignacionId);
+        },
+      ),
+      GoRoute(
+        path: '${RouteNames.trazabilidad}/:asignacionId',
+        builder: (context, state) {
+          final asignacionIdStr = state.pathParameters['asignacionId'] ?? '0';
+          final asignacionId = int.tryParse(asignacionIdStr) ?? 0;
+          final controllerTag = 'trazabilidad_$asignacionId';
+
+          return ViajePage(
+            asignacionId: asignacionId,
+            controllerTag: controllerTag,
+            loteDetalle: null,
+          );
+        },
+      ),
 
       // Shell route con bottom navigation
       ShellRoute(
@@ -164,31 +186,26 @@ class AppRouter {
               child: const PerfilPage(),
               state: state,
             ),
+            routes: [
+              GoRoute(
+                path: 'datos-personales',
+                builder: (context, state) => const DatosPersonalesView(),
+              ),
+              GoRoute(
+                path: 'datos-transportista',
+                builder: (context, state) => const DatosTransportistaView(),
+              ),
+              GoRoute(
+                path: 'cambiar-correo',
+                builder: (context, state) => const CambiarCorreoView(),
+              ),
+              GoRoute(
+                path: 'cambiar-contrasena',
+                builder: (context, state) => const CambiarContrasenaView(),
+              ),
+            ],
           ),
         ],
-      ),
-      GoRoute(
-        path: '${RouteNames.loteDetalle}/:asignacionId',
-        builder: (context, state) {
-          final asignacionIdStr = state.pathParameters['asignacionId'] ?? '0';
-          final asignacionId = int.tryParse(asignacionIdStr) ?? 0;
-          return LoteDetallePage(asignacionId: asignacionId);
-        },
-      ),
-      GoRoute(
-        path: '${RouteNames.trazabilidad}/:asignacionId',
-        builder: (context, state) {
-          final asignacionIdStr = state.pathParameters['asignacionId'] ?? '0';
-          final asignacionId = int.tryParse(asignacionIdStr) ?? 0;
-
-          final controllerTag = 'trazabilidad_$asignacionId';
-
-          return ViajePage(
-            asignacionId: asignacionId,
-            controllerTag: controllerTag,
-            loteDetalle: null,
-          );
-        },
       ),
     ],
   );

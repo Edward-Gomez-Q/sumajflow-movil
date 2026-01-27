@@ -57,7 +57,7 @@ class ViajeCargandoView extends StatelessWidget {
                       ),
                       child: const Center(
                         child: FaIcon(
-                          FontAwesomeIcons.truckLoading,
+                          FontAwesomeIcons.truckRampBox,
                           size: 48,
                           color: Color(0xFFF97316),
                         ),

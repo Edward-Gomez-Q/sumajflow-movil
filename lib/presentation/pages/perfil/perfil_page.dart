@@ -1,9 +1,12 @@
+// lib/presentation/pages/perfil/perfil_page.dart
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sumajflow_movil/config/routes/route_names.dart';
 import 'package:sumajflow_movil/core/services/auth_service.dart';
 import 'package:sumajflow_movil/core/services/websocket_service.dart';
+import 'package:sumajflow_movil/presentation/getx/perfil_controller.dart';
 import 'package:sumajflow_movil/presentation/getx/theme_controller.dart';
 
 class PerfilPage extends StatelessWidget {
@@ -11,38 +14,61 @@ class PerfilPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final authService = AuthService.to;
     final themeController = ThemeController.to;
+    final controller = Get.put(PerfilController());
 
     return Scaffold(
       appBar: AppBar(title: const Text('Perfil')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+      body: Obx(() {
+        if (controller.isLoading.value) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final perfil = controller.perfil.value;
+        if (perfil == null) {
+          return _buildErrorState(context);
+        }
+
+        return RefreshIndicator(
+          onRefresh: controller.cargarPerfil,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              _buildUserInfo(context, perfil),
+              const SizedBox(height: 24),
+              _buildThemeSection(context, themeController),
+              const SizedBox(height: 16),
+              _buildAccountSection(context),
+              const SizedBox(height: 16),
+              _buildAboutSection(context),
+              const SizedBox(height: 24),
+              _buildLogoutButton(context),
+            ],
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildErrorState(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Información del usuario
-          _buildUserInfo(context, authService),
-          const SizedBox(height: 24),
-
-          // Configuración de tema
-          _buildThemeSection(context, themeController),
+          const Icon(Icons.error_outline, size: 64, color: Colors.red),
           const SizedBox(height: 16),
-
-          // Sección de cuenta
-          _buildAccountSection(context),
+          const Text('Error al cargar el perfil'),
           const SizedBox(height: 16),
-
-          // Sección de ayuda
-          _buildHelpSection(context),
-          const SizedBox(height: 24),
-
-          // Botón de cerrar sesión
-          _buildLogoutButton(context),
+          ElevatedButton(
+            onPressed: () => Get.find<PerfilController>().cargarPerfil(),
+            child: const Text('Reintentar'),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildUserInfo(BuildContext context, AuthService authService) {
+  Widget _buildUserInfo(BuildContext context, perfil) {
     final theme = Theme.of(context);
 
     return Card(
@@ -51,12 +77,15 @@ class PerfilPage extends StatelessWidget {
         child: Row(
           children: [
             CircleAvatar(
-              radius: 40,
+              radius: 32,
               backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
-              child: Icon(
-                Icons.person,
-                size: 40,
-                color: theme.colorScheme.primary,
+              child: Text(
+                perfil.iniciales,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.primary,
+                ),
               ),
             ),
             const SizedBox(width: 16),
@@ -65,16 +94,23 @@ class PerfilPage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    authService.correo ?? 'Transportista',
+                    perfil.nombreCompleto,
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'ID: ${authService.transportistaId ?? "N/A"}',
-                    style: theme.textTheme.bodyMedium?.copyWith(
+                    perfil.usuario.correo,
+                    style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'ID: ${perfil.transportista?.id ?? "N/A"}',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                     ),
                   ),
                 ],
@@ -115,66 +151,52 @@ class PerfilPage extends StatelessWidget {
         ListTile(
           leading: const Icon(Icons.person_outline),
           title: const Text('Información Personal'),
+          subtitle: const Text('Edita tus datos personales'),
           trailing: const Icon(Icons.chevron_right),
           onTap: () {
-            // Navegar a información personal
+            context.push("/profile/datos-personales");
+          },
+        ),
+        ListTile(
+          leading: const Icon(Icons.local_shipping_outlined),
+          title: const Text('Información de Transportista'),
+          subtitle: const Text('Edita datos del vehículo'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () {
+            context.push('/profile/datos-transportista');
+          },
+        ),
+        ListTile(
+          leading: const Icon(Icons.mail_outline),
+          title: const Text('Cambiar Correo'),
+          subtitle: const Text('Actualiza tu correo electrónico'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () {
+            context.push('/profile/cambiar-correo');
           },
         ),
         ListTile(
           leading: const Icon(Icons.lock_outline),
           title: const Text('Cambiar Contraseña'),
+          subtitle: const Text('Actualiza tu contraseña'),
           trailing: const Icon(Icons.chevron_right),
           onTap: () {
-            // Navegar a cambiar contraseña
-          },
-        ),
-        ListTile(
-          leading: const Icon(Icons.notifications_outlined),
-          title: const Text('Notificaciones'),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () {
-            // Navegar a configuración de notificaciones
+            context.push('/profile/cambiar-contrasena');
           },
         ),
       ],
     );
   }
 
-  Widget _buildHelpSection(BuildContext context) {
+  Widget _buildAboutSection(BuildContext context) {
     return _SectionCard(
-      title: 'Ayuda y Soporte',
+      title: 'Información',
       children: [
-        ListTile(
-          leading: const Icon(Icons.help_outline),
-          title: const Text('Centro de Ayuda'),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () {
-            // Navegar a centro de ayuda
-          },
-        ),
-        ListTile(
-          leading: const Icon(Icons.description_outlined),
-          title: const Text('Términos y Condiciones'),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () {
-            // Navegar a términos y condiciones
-          },
-        ),
-        ListTile(
-          leading: const Icon(Icons.privacy_tip_outlined),
-          title: const Text('Política de Privacidad'),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () {
-            // Navegar a política de privacidad
-          },
-        ),
         ListTile(
           leading: const Icon(Icons.info_outline),
           title: const Text('Acerca de'),
           trailing: const Icon(Icons.chevron_right),
-          onTap: () {
-            _showAboutDialog(context);
-          },
+          onTap: () => _showAboutDialog(context),
         ),
       ],
     );
@@ -221,29 +243,19 @@ class PerfilPage extends StatelessWidget {
 
   Future<void> _logout(BuildContext context) async {
     try {
-      // Mostrar loading
       showDialog(
         context: context,
         barrierDismissible: false,
         builder: (context) => const Center(child: CircularProgressIndicator()),
       );
 
-      // Desconectar WebSocket
       WebSocketService.to.disconnect();
-
-      // Limpiar datos de autenticación
       await AuthService.to.clearAuthData();
 
-      // Cerrar loading
       if (context.mounted) Navigator.pop(context);
-
-      // Navegar a home
       if (context.mounted) context.go(RouteNames.home);
     } catch (e) {
-      // Cerrar loading si hay error
       if (context.mounted) Navigator.pop(context);
-
-      // Mostrar error
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -258,13 +270,23 @@ class PerfilPage extends StatelessWidget {
   void _showAboutDialog(BuildContext context) {
     showAboutDialog(
       context: context,
-      applicationName: 'Sumajflow Móvil',
-      applicationVersion: '1.0.0',
+      applicationName: 'SumajFlow Móvil',
+      applicationVersion: '1.0.0 (Prototipo)',
       applicationIcon: const Icon(Icons.local_shipping, size: 48),
       children: [
         const Text('Aplicación móvil para transportistas'),
+        const SizedBox(height: 16),
+        const Text('Desarrollado por:'),
         const SizedBox(height: 8),
-        const Text('Desarrollado por Sumajflow Team'),
+        const Text(
+          'Edward Gomez',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 16),
+        const Text(
+          'Este es un sistema prototipo desarrollado como parte del proyecto de trazabilidad minera.',
+          style: TextStyle(fontSize: 12),
+        ),
       ],
     );
   }

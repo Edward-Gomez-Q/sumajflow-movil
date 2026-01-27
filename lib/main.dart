@@ -10,6 +10,7 @@ import 'package:sumajflow_movil/core/services/location_service.dart';
 import 'package:sumajflow_movil/core/services/offline_storage_service.dart';
 import 'package:sumajflow_movil/core/services/websocket_service.dart';
 import 'package:sumajflow_movil/core/theme/app_theme.dart';
+import 'package:sumajflow_movil/presentation/getx/perfil_controller.dart';
 import 'package:sumajflow_movil/presentation/getx/theme_controller.dart';
 import 'package:sumajflow_movil/presentation/getx/dashboard_controller.dart';
 
@@ -59,6 +60,9 @@ Future<void> main() async {
 
     Get.put(DashboardController(), permanent: true);
     debugPrint('✅ DashboardController inicializado');
+
+    Get.put(PerfilController(), permanent: true);
+    debugPrint('✅ PerfilController inicializado');
 
     debugPrint('✅ Todos los servicios inicializados correctamente');
   } catch (e, st) {
